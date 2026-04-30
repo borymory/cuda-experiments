@@ -6,7 +6,7 @@
 #include <cooperative_groups/reduce.h>
 #include "common.h"
 
-# CPU_reference
+// CPU_reference
 
 void softmax_forward_cpu(float* out, const float* inp, int N, int C) {
     // inp is (N, C)
