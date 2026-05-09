@@ -25,8 +25,21 @@
 // array initializer of size d
 void initArray(float *A, const int d);
 
+void initMatrix(float *B, const int N, const int d);
+
+void copyArray (const float *src, float *dst, const int d);
+
+void copyMatrix(const float *src, float *dst, const int N, const int d);
+
+
 // test kernels
-void test_vectorreduction_v1(float *A, const int d);
+void test_vectorReduction_v1(float *A, const int d);
+
+void test_matrixReduction_v1(float *B, const int N, const int d)
+
+
 
 // verify kernels
-void verify_vectorreduction_v1(float *ref_A, float *acc_A, const int d);
+void verify_vectorReduction_v1(float *ref_A, float *acc_A, const int d);
+
+void verify_matrixReduction_v1(float *ref_B, float *acc_B, const int N, const int d);
