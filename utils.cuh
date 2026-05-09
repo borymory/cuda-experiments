@@ -27,15 +27,15 @@ void initArray(float *A, const int d);
 
 void initMatrix(float *B, const int N, const int d);
 
-void copyArray (const float *src, float *dst, const int d);
+void copyArray (float *src, float *dst, const int d);
 
-void copyMatrix(const float *src, float *dst, const int N, const int d);
+void copyMatrix(float *src, float *dst, const int N, const int d);
 
 
 // test kernels
 void test_vectorReduction_v1(float *A, const int d);
 
-void test_matrixReduction_v1(float *B, const int N, const int d)
+void test_matrixReduction_v1(float *B, const int N, const int d);
 
 
 

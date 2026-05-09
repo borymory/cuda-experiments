@@ -32,13 +32,13 @@ __global__ void matrixReduction_v1 (float *B, const int N, const int d) {
 
   // do the first reduction to array size * 2
   for (uint i = 0; i < d/32*1/2; offset += 32) {
-    A[rowIdx * n + tid] += A[rowIdx * n + (tid + offset)];
+    B[rowIdx * N + tid] += B[rowIdx * N + (tid + offset)];
   }
 
   // do the normal reduction algorithm with stride size 32
   for (uint stride = blockDim.x; stride > 0; stride>>=1) {
     __syncthreads();
     if (tid + stride < d)
-      A[tid] += A[tid + stride];
+      B[tid] += B[tid + stride];
   }
 }

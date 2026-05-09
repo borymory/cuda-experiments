@@ -7,7 +7,7 @@ void test_vectorReduction_v1(float *A, const int d) {
   dim3 blockDim(32);
   dim3 gridDim(d/32*2);
 
-  vectorreduction_v1<<<gridDim, blockDim>>>(A, d);
+  vectorReduction_v1<<<gridDim, blockDim>>>(A, d);
 }
 
 void test_matrixReduction_v1(float *B, const int N, const int d) {
@@ -15,7 +15,7 @@ void test_matrixReduction_v1(float *B, const int N, const int d) {
   dim3 blockDim(32);
   dim3 gridDim(N);
 
-  vectorreduction_v1<<<gridDim, blockDim>>>(B, d);
+  matrixReduction_v1<<<gridDim, blockDim>>>(B, N, d);
 }
 
 void initArray(float *A, const int d) {
@@ -28,11 +28,11 @@ void initMatrix(float *B, const int N, const int d) {
   }
 }
 
-void copyArray (const float *src, float *dst, const int d) {
+void copyArray (float *src, float *dst, const int d) {
   for (uint i = 0; i < d; ++i) dst[i] = src[i];
 }
 
-void copyMatrix(const float *src, float *dst, const int N, const int d) {
+void copyMatrix(float *src, float *dst, const int N, const int d) {
   for (uint i = 0; i < N; i++) {
     for (uint j = 0; j < d; ++j) dst[i * d + j] = src[i * d + j];
   }
@@ -67,5 +67,5 @@ void verify_matrixReduction_v1(float *ref_B, float *acc_B, const int N, const in
       printf("GPU Result: %f\n", acc_B[row * d]);
     }
   }
-  if (errorSeen = false) printf("Hey it's accurate!")
+  if (errorSeen == false) printf("Hey it's accurate!");
 }
