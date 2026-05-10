@@ -1,8 +1,5 @@
-#include <algorithm>
-#include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
+#include "kernel.cuh"
+
 
 __global__ void vectorReduction_v1 (float *A, const int d) {
   // A is 1xd.
@@ -43,4 +40,30 @@ __global__ void matrixReduction_v1 (float *B, const int N, const int d) {
 
   if (tid == 0)
     B[rowIdx * d] = Bs[0];
+}
+
+void test_vectorReduction_v1(float *A, const int d) {
+  
+  dim3 blockDim(32);
+  dim3 gridDim(d/32*2);
+
+  vectorReduction_v1<<<gridDim, blockDim>>>(A, d);
+
+  // Check for launch errors (like passing a CPU pointer!)
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess)
+      printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
+}
+
+void test_matrixReduction_v1(float *B, const int N, const int d) {
+  
+  dim3 blockDim(32);
+  dim3 gridDim(N);
+
+  matrixReduction_v1<<<gridDim, blockDim>>>(B, N, d);
+
+  // Check for launch errors (like passing a CPU pointer!)
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess)
+      printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
 }

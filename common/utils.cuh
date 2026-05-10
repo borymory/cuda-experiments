@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <math.h>
 
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
 
@@ -32,14 +33,5 @@ void copyArray (float *src, float *dst, const int d);
 void copyMatrix(float *src, float *dst, const int N, const int d);
 
 
-// test kernels
-void test_vectorReduction_v1(float *A, const int d);
-
-void test_matrixReduction_v1(float *B, const int N, const int d);
-
-
-
-// verify kernels
-void verify_vectorReduction_v1(float *ref_A, float *acc_A, const int d);
-
-void verify_matrixReduction_v1(float *ref_B, float *acc_B, const int N, const int d);
+// verify element wise
+bool validate(float *gpu_res, float *cpu_res, int size);
