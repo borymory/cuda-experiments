@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
 #include "utils.cuh"
 #include "kernel.cuh"
 
@@ -45,7 +43,7 @@ int main(void) {
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
-  cudaFree(B_ref);
+  cudaFreeHost(B_ref);
 
   return 0;
 }

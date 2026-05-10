@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
 #include "utils.cuh"
 #include "kernel.cuh"
 
@@ -10,6 +8,13 @@ void cpu_reduction (float *src, float *dst, int N, int d) {
         for (int j = 0; j < d; j++) sum += src[i * d + j];
         dst[i] = sum; // Ground truth
     }
+}
+
+// VERIFY FIRST COLUMN OF EACH ROW OF CPU AND GPU
+bool cpu_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
+  for (uint i = 0; i < N i++) {
+    if (fabsf(gpu_res[i * d] - cpu_res[i * d]) > 1e-4) return false;
+  }
 }
 
 int main(void) {
@@ -47,11 +52,11 @@ int main(void) {
   printf("Kernel Performance: %.2f milliseconds\n", milliseconds);
 
   // VERIFY/BENCHMARK KERNEL
-  if (validate(B, B_ref, N*d)) printf("Succes!");
+  if (cpu_verify(B, B_ref, N, d)) printf("Succes!");
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
-  cudaFree(B_ref);
+  cudaFreeHost(B_ref);
 
   return 0;
 }

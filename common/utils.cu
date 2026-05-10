@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "utils.cuh"
 
 void initArray(float *A, const int d) {
