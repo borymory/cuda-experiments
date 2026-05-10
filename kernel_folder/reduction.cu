@@ -5,7 +5,7 @@
 #include <cmath>
 
 __global__ void vectorReduction_v1 (float *A, const int d) {
-  // Assume A is 1xd.
+  // A is 1xd.
   // Each block has 32 threads.
   // We launch (d/2)/32 many blocks.
   
@@ -18,27 +18,29 @@ __global__ void vectorReduction_v1 (float *A, const int d) {
 }
 
 __global__ void matrixReduction_v1 (float *B, const int N, const int d) {
-  // Assume A is Nxd.
+  // B is Nxd.
   // Let each block have 32 threads.
-  // Let each block calculate one row of A
-  // d = 128. loop 1: each thread calculates 128/32 = 4 elements. Result, array sum of size 32
-  // Loop 2: each thread does usual reduction
-  // Even better: let each thread calculate d/32 * (1/2) = d/16 elements. In our example, 2. 
-  // Then array size is threadcount * 2, which is suitable for the reduction algorithm.
 
- 
   int rowIdx = blockIdx.x;
   int tid = threadIdx.x;
+  
+  // we reduce the total size to 32 and then load to shared memory
+  __shared__ float Bs[32];
+  float tmpSum = 0.0f;
+  for (uint offset = 0; offset < d; offset += 32) {
+    if (tid + offset < d)
+      tmpSum += B[rowIdx * d + (tid + offset)];
+  }
+  Bs[tid] = tmpSum;
+  __syncthreads(); // make sure all threads have written the values to SMEM before reading.
 
-  // do the first reduction to array size * 2
-  for (uint i = 0; i < d/32*1/2; offset += 32) {
-    B[rowIdx * N + tid] += B[rowIdx * N + (tid + offset)];
+  // then follows a simple reduction in the shared memory: we use stride = blockDim.x>>1 since element count and array size match
+  for (uint stride = blockDim.x>>1; stride > 0; stride>>=1) {
+    if (tid < stride)
+      Bs[tid] += Bs[tid + stride];
+    __syncthreads(); // make sure the all threads have written their sum value
   }
 
-  // do the normal reduction algorithm with stride size 32
-  for (uint stride = blockDim.x; stride > 0; stride>>=1) {
-    __syncthreads();
-    if (tid + stride < d)
-      B[tid] += B[tid + stride];
-  }
+  if (tid == 0)
+    B[rowIdx * d] = Bs[0];
 }

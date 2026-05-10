@@ -55,7 +55,7 @@ void verify_matrixReduction_v1(float *ref_B, float *acc_B, const int N, const in
   // acc_B: result
   // ref_B: CPU calculated result
   bool errorSeen = false;
-  for (uint row = 0; row < d; ++row) {
+  for (uint row = 0; row < N; ++row) {
     float rowSum = 0.0f;
     for (uint i = 0; i < d; ++i) {
       rowSum += ref_B[row * d + i];

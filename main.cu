@@ -54,5 +54,11 @@ int main(void) {
   //verify_vectorReduction_v1(A_ref, A, d);
   verify_matrixReduction_v1(B_ref, B, N, d);
 
+  //cudaFreeHost(A);
+  cudaFreeHost(B);
+
+  //cudaFree(devA);
+  cudaFree(devB);
+
   return 0;
 }
