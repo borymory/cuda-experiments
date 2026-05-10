@@ -6,6 +6,9 @@
 /// TEMPLATE MAIN.CU FOLDER
 ///
 
+/// PLACE YOUR KERNEL SPECIFIC VERIFICATION CODE HERE
+/// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
+
 int main(void) {
   
   float *B;
@@ -34,6 +37,7 @@ int main(void) {
 
   // NOTE TIME STOP, ACTS AS SYNCHRONIZE
   cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("Kernel Performance: %.2f milliseconds\n", milliseconds);

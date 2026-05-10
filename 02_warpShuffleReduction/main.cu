@@ -1,12 +1,13 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
 #include "utils.cuh"
 #include "kernel.cuh"
 
 ///
 /// TEMPLATE MAIN.CU FOLDER
 ///
+
+/// PLACE YOUR KERNEL SPECIFIC VERIFICATION CODE HERE
+/// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
 
 int main(void) {
   
@@ -36,6 +37,7 @@ int main(void) {
 
   // NOTE TIME STOP, ACTS AS SYNCHRONIZE
   cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("Kernel Performance: %.2f milliseconds\n", milliseconds);
@@ -45,7 +47,7 @@ int main(void) {
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
-  cudaFree(B_ref);
+  cudaFreeHost(B_ref);
 
   return 0;
 }

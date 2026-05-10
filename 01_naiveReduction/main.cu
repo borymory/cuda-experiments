@@ -6,15 +6,16 @@ void cpu_reduction (float *src, float *dst, int N, int d) {
     for (int i = 0; i < N; i++) {
         float sum = 0;
         for (int j = 0; j < d; j++) sum += src[i * d + j];
-        dst[i] = sum; // Ground truth
+        dst[i * d] = sum; // Ground truth
     }
 }
 
 // VERIFY FIRST COLUMN OF EACH ROW OF CPU AND GPU
 bool cpu_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
-  for (uint i = 0; i < N i++) {
+  for (uint i = 0; i < N; i++) {
     if (fabsf(gpu_res[i * d] - cpu_res[i * d]) > 1e-4) return false;
   }
+  return true;
 }
 
 int main(void) {
@@ -47,12 +48,13 @@ int main(void) {
 
   // NOTE TIME STOP, ACTS AS SYNCHRONIZE
   cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("Kernel Performance: %.2f milliseconds\n", milliseconds);
 
   // VERIFY/BENCHMARK KERNEL
-  if (cpu_verify(B, B_ref, N, d)) printf("Succes!");
+  if (cpu_verify(B, B_ref, N, d)) printf("Succes!\n");
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);

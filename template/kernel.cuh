@@ -6,4 +6,4 @@
 #include <cmath>
 #include <cuda_runtime.h>
 
-// let it hold function declarations
+// let it hold function declarations, wrapper declarations are enough
