@@ -6,8 +6,7 @@ With CUDA Fundamentals, I hope to explore the fundamentals of CUDA programming. 
 
 Kernels implemented so far:
 - [x] Reduction Algorithm: from PMPP
-- [ ] Reduction Algorithm: Warp Shuffling
-- [ ] build.sh file to run launch command (later)
+- [x] Reduction Algorithm: Warp Shuffling
 
 #### LAUNCH COMMANDS
 
@@ -23,10 +22,18 @@ Launch using nvcc:
 nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 ```
 
+### Benchmarking: Array Row reduction
+
+| Version | Implementation | Avg Latency | Optimization |
+| :--- | :--- | :--- | :--- |
+| v1 | Naive (Shared Memory) | 0.48 ms | Tree reduction w/ SMEM |
+| v2 | Warp Shuffle (Registers) | 0.38 ms | Register-to-register shuffles |
+
 #### To-Do:
 
-* Implement matrix row reduction
-* Explore alternatives for reductions including warp shuffling
+* Work on warp shuffling, explore variations
+* Implement warp-level reduction using __shfl_XOR_sync
+* build.sh file to run launch command (later)
 
 ### Reduction Algorithm
 
@@ -118,4 +125,8 @@ NOTE: I've checked CUDA programming and a few discussions and unfortunately coul
 
 ## Worklog
 
+May 11, 2026 <br>
 For now, I worked on organizing my github and getting comfortable with .cu and .cuh. I experimented with launch commands using flags and I think this workflow will keep everything much more clearer. Especially having a template is great since any local changes to the kernel doesn't affect the previous kernels I wrote. With this, I hope that I can create benchmarking functions that can work with multiple kernels :)
+
+May 12, 2026<br>
+Implemented shuffle intrinsics for warp-level reduction primtives. Did a small benchmark test. I will write a more generalized/encompassing benchmarking func. that I can just use to compare kernels more quickly in the future.
