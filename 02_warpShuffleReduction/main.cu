@@ -53,7 +53,7 @@ int main(void) {
   cudaEventRecord(start);
 
   // RUN KERNEL
-  test_vectorReduction_v2(B, d);
+  test_vectorReductionXOR_v2(B, d);
 
   // NOTE TIME STOP, ACTS AS SYNCHRONIZE
   cudaEventRecord(stop);

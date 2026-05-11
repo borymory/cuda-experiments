@@ -42,22 +42,26 @@ __global__ void vectorReduction_v2 (float *A, const int d) {
 // which would cause the loop to stall indefinitely!
 // Unsigned mask determines which threads of the warp will be participating in the shuffle
 
-__global__ void test_vectorReductionXOR_v2 (float *A, const int d) {
-    // asumme d > 32
+__global__ void vectorReductionXOR_v2 (float *A, const int d) {
+    // Ghost sum enables d to be any positive number!
 
     int tid = threadIdx.x;
-    float threadVal = 0.0f;
+    float threadVal = 0.0f; 
+    // IMPORTANT: Ghost Sum - If d = 8, threads 0-7 woud load it whereas threads 8-31 remain zero.
+    // Thus, after the XOR shuffle, if we looked a any thread within the warp,
+    // the contribution from threads 8-31 are virtually zero. Yet, all threads 
+    // in the warp hold the reduced value!
 
     // Reduce data into registers:
     for (uint offset = 0; offset < d; offset += 32) {
         // Fail safe if d is not a multiple of 32
         if (tid + offset < d)
-            threadVal = A[tid + offset];
+            threadVal += A[tid + offset];
     }
 
     // Start XOR shuffle:
     for (uint mirrorIdx = 1; mirrorIdx <= 16; mirrorIdx <<= 1) {
-        threadval += __shfl_XOR_sync(FULL_MASK, threadVal, mirrorIdx);
+        threadVal += __shfl_xor_sync(FULL_MASK, threadVal, mirrorIdx);
     }
 
     // Write result back:
