@@ -6,25 +6,37 @@
 /// TEMPLATE MAIN.CU FOLDER
 ///
 
-/// PLACE YOUR KERNEL SPECIFIC VERIFICATION CODE HERE
+// CPU CODE
+void cpu_array_reduction (float *src, float cpu_res, const int d) {
+  float tmpSum = 0.0f;
+  for (uint i = 0, i < d; ++i) {
+    tmpSum += src[i];
+  }
+  cpu_res = tmpSum;
+}
+
+bool cpu_array_verify (float *gpu_res, float cpu_res, const int d) {
+  if (fabsf(gpu_res[0] - cpu_res) > 1e-4) return false;
+  return true;
+}
+
 /// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
 
 int main(void) {
   
   float *B;
-  float *B_ref;
+  float B_cpu = 0.0f;
 
   const int N = 256;
   const int d = 128;
 
   // USE UNIFIED MEMORY - INITIALIATONS
-  cudaMallocManaged(&B, N * d * sizeof(float));
-  cudaMallocHost(&B_ref, N * d * sizeof(float));
+  cudaMallocManaged(&B, d * sizeof(float));
 
-  initMatrix(B, N, d);
+  initArray(B, d);
 
   // CREATE REFERANCE FOR CPU
-  memCpy(&B_ref, &B, N*d*sizeof(float));
+  cpu_array_reduction(B, B_cpu, d);
 
 
   cudaEvent_t start, stop;
@@ -33,7 +45,7 @@ int main(void) {
   cudaEventRecord(start);
 
   // RUN KERNEL
-  some_kernel_call_function(B, N, d);
+  test_vectorReduction_v2(B, d);
 
   // NOTE TIME STOP, ACTS AS SYNCHRONIZE
   cudaEventRecord(stop);
@@ -43,11 +55,10 @@ int main(void) {
   printf("Kernel Performance: %.2f milliseconds\n", milliseconds);
 
   // VERIFY/BENCHMARK KERNEL
-  verifybenchmark_kernel(B_ref, B, N, d);
+  if (cpu_array_verify(B, B_cpu, d)) printf("Succes!\n");
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
-  cudaFreeHost(B_ref);
 
   return 0;
 }

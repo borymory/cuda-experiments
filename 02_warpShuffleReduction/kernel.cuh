@@ -6,5 +6,6 @@
 #include <cmath>
 #include <math.h>
 #include <cuda_runtime.h>
+#define FULL_MASK 0xffffffff
 
-// let it hold function declarations, wrapper declarations are enough
+void test_vectorReduction_v2 (float *A, const int d);

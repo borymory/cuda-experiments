@@ -2,10 +2,11 @@
 #include "utils.cuh"
 #include "kernel.cuh"
 
-void cpu_reduction (float *src, float *dst, int N, int d) {
+void cpu_reduction (float *src, float *dst, const int N, const int d) {
     for (int i = 0; i < N; i++) {
         float sum = 0;
         for (int j = 0; j < d; j++) sum += src[i * d + j];
+        // Sum is stored at first column of each row, just like the kernel
         dst[i * d] = sum; // Ground truth
     }
 }

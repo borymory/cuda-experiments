@@ -20,7 +20,7 @@ void copyMatrix(float *src, float *dst, const int N, const int d) {
   }
 }
 
-// Generic verifier
+// generic verifier
 bool validate(float *gpu_res, float *cpu_res, int size) {
     for (int i = 0; i < size; i++) {
         if (fabsf(gpu_res[i] - cpu_res[i]) > 1e-4) return false;
