@@ -1,5 +1,17 @@
 #include "kernel.cuh"
 
+// vectorReduction_v2:
+// Uses __shfl_down_synch intrinsic for warp-level primitives
+
+// vectorReductionXOR_v2:
+// Uses __shfl_XOR_synch intrinsic for warp-level primitives,
+// leading to a full reduction. This option is better when all threads
+// of the warp needs to have the total sum/reduced value.
+
+
+//
+// KERNELS
+//
 __global__ void vectorReduction_v2 (float *A, const int d) {
     // 32 threads < d
 
@@ -30,11 +42,48 @@ __global__ void vectorReduction_v2 (float *A, const int d) {
 // which would cause the loop to stall indefinitely!
 // Unsigned mask determines which threads of the warp will be participating in the shuffle
 
+__global__ void test_vectorReductionXOR_v2 (float *A, const int d) {
+    // asumme d > 32
+
+    int tid = threadIdx.x;
+    float threadVal = 0.0f;
+
+    // Reduce data into registers:
+    for (uint offset = 0; offset < d; offset += 32) {
+        // Fail safe if d is not a multiple of 32
+        if (tid + offset < d)
+            threadVal = A[tid + offset];
+    }
+
+    // Start XOR shuffle:
+    for (uint mirrorIdx = 1; mirrorIdx <= 16; mirrorIdx <<= 1) {
+        threadval += __shfl_XOR_sync(FULL_MASK, threadVal, mirrorIdx);
+    }
+
+    // Write result back:
+    if (tid == 0) A[0] = threadVal;
+}
+
+//
+// KERNEL WRAPPERS
+//
 void test_vectorReduction_v2 (float *A, const int d) {
     dim3 blockDim(32);
     dim3 gridDim(1);
 
     vectorReduction_v2<<<gridDim, blockDim>>>(A, d);
+
+    // Check for launch errors (like passing a CPU pointer!)
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess)
+        printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
+}
+
+void test_vectorReductionXOR_v2 (float *A, const int d) {
+    dim3 blockDim(32); // Working strictly with warps
+    dim3 gridDim(1);
+
+    vectorReductionXOR_v2<<<gridDim, blockDim>>>(A, d);
 
     // Check for launch errors (like passing a CPU pointer!)
     cudaError_t err = cudaGetLastError();
