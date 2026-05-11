@@ -9,7 +9,16 @@ Kernels implemented so far:
 - [ ] Reduction Algorithm: Warp Shuffling
 - [ ] build.sh file to run launch command (later)
 
-#### RUN COMMANDS
+#### LAUNCH COMMANDS
+
+Move into desired kernel directory, e.g:
+
+```
+cd cuda-experiments/01_naiveReduction
+```
+
+Launch using nvcc:
+
 ```
 nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 ```
