@@ -123,6 +123,14 @@ As long as we are able to reduce/squeeze the whole array inside 32 registers, we
 
 NOTE: I've checked CUDA programming and a few discussions and unfortunately couldn't really pinpoint to why request of the calling thread for the source thread that has a mask of 0 is not ignored. The guide [Using CUDA Warp-Level Primitives](https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/) also overlooks this fact in Listing 3.
 
+### ANOTHER IMPLEMENTATION: __shfl_xor_sync(...)
+
+Above we demonstrated a reduction algorithm using __shfl_down_sync. In the case that we want each thread within a warp to share the same reduced value, we use the __shfl_xor_sync intrinsic. It works in a similar manner to the preceding, except now instead of ofsetting from calling thread, we do a mirroring with respect to the position of the calling thread and a distance from it. This is actually a bitwise XOR operation but I like to think of it as a mirroring index. This is quite hard to image but seeing how the mirroring index moves and carries the summation through out its function becomes more apperant if we draw it out:
+
+![image](images/warpReductionXOR.png)
+
+It is most simple if you follow the first thread (tx = 0) and see the accesses and then generalize it over other threads. A more natural and convincing proof follows from writing each thread idx and mirror idx in two's complements and doing the bitwise XOR yourself.
+
 ## Worklog
 
 May 11, 2026 <br>
