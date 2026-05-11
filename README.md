@@ -6,7 +6,7 @@ With CUDA Fundamentals, I hope to explore the fundamentals of CUDA programming. 
 
 Kernels implemented so far:
 - [x] Reduction Algorithm: from PMPP
-- [x] Reduction Algorithm: Warp Shuffling
+- [x] Reduction Algorithm: Warp Shuffling (xor and down)
 
 #### LAUNCH COMMANDS
 
@@ -31,8 +31,10 @@ nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 
 #### To-Do:
 
-* Work on warp shuffling, explore variations
-* Implement warp-level reduction using __shfl_XOR_sync
+* Expand __shfl_xor_sync to do matrix rowMax and rowSum
+* A more encompassing benchmark function
+* Thread mapping practices for GMEM -> SMEM loading
+* Maybe later do something abt kernels that suffer from bank conflicts, poor guys
 * build.sh file to run launch command (later)
 
 ### Reduction Algorithm
@@ -137,4 +139,4 @@ May 11, 2026 <br>
 For now, I worked on organizing my github and getting comfortable with .cu and .cuh. I experimented with launch commands using flags and I think this workflow will keep everything much more clearer. Especially having a template is great since any local changes to the kernel doesn't affect the previous kernels I wrote. With this, I hope that I can create benchmarking functions that can work with multiple kernels :)
 
 May 12, 2026<br>
-Implemented shuffle intrinsics for warp-level reduction primtives. Did a small benchmark test. I will write a more generalized/encompassing benchmarking func. that I can just use to compare kernels more quickly in the future.
+Implemented shuffle intrinsics for warp-level reduction primitives. Did a small benchmark test. I will write a more generalized/encompassing benchmarking func. that I can just use to compare kernels more quickly in the future. Implemented XOR warp shuffling.
