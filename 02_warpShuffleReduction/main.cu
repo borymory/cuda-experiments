@@ -5,7 +5,7 @@
 // CPU CODE - declare float cpu_res and pass it as &cpu_res into argument inside main func
 void cpu_array_reduction (float *src, float *cpu_res, const int d) {
   float tmpSum = 0.0f;
-  for (uint i = 0; i < d; ++i) {
+  for (unsigned int i = 0; i < d; ++i) {
     tmpSum += src[i];
   }
   *cpu_res = tmpSum; // write to pointer
@@ -32,13 +32,13 @@ void cpu_rowSum (float *src, float *cpu_res, const int N, const int d) {
 }
 
 bool cpu_array_verify (float *gpu_res, float cpu_res, const int d) {
-  if (std::fabsf(gpu_res[0] - cpu_res) > 1e-4) return false;
+  if (std::abs(gpu_res[0] - cpu_res) > 1e-4) return false;
   return true;
 }
 
 bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
   for (unsigned int i = 0; i < N; ++i) {
-    if (std::fabsf(gpu_res[i * d] - cpu_res[i]) > 1e-4) return false;
+    if (std::abs(gpu_res[i * d] - cpu_res[i]) > 1e-4) return false;
   }
   return true;
 }

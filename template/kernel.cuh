@@ -1,10 +1,11 @@
 #pragma once
 #include <algorithm>
+#include <cuda_runtime.h>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <math.h>
-#include <cuda_runtime.h>
 
-// let it hold function declarations, wrapper declarations are enough
+#define FULL_MASK 0xffffffffu // unsigned, safer in bit shifting
+
+// let it hold function declarations. wrapper declarations are enough

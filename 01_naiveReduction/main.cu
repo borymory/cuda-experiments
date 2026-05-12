@@ -14,7 +14,7 @@ void cpu_reduction (float *src, float *dst, const int N, const int d) {
 // VERIFY FIRST COLUMN OF EACH ROW OF CPU AND GPU
 bool cpu_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
   for (unsigned int i = 0; i < N; i++) {
-    if (std::fabsf(gpu_res[i * d] - cpu_res[i * d]) > 1e-4) return false;
+    if (std::abs(gpu_res[i * d] - cpu_res[i * d]) > 1e-4) return false;
   }
   return true;
 }

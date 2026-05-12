@@ -75,22 +75,23 @@ __global__ void vectorReductionXOR_v2 (float *A, const int d) {
     if (tid == 0) A[0] = threadVal;
 }
 
+template<const int BN>
 __global__ void rowSumXOR_v2 (float *B, const int N, const int d) {
     // We launch CEIL_DIV(N, BN) many blocks
     // We have BN * 32 many threads per block
 
-    rowIdx = blockIdx.x;
+    int rowIdx = blockIdx.x * BN;
 
     // Offset each block to a row
     B += rowIdx * d;
 
     // Assume each block has BN many warps
-    tx = threadIdx.x % 32;  // Inner Col of block (same as LaneID)
-    ty = threadIdx.x / 32;  // Inner Row of block
+    int tx = threadIdx.x % 32;  // Inner Col of block (same as LaneID)
+    int ty = threadIdx.x / 32;  // Inner Row of block
 
     float threadVal = 0.0f;
     // If N is not a multiple of 32
-    if (rowIdx * d + ty < N) {
+    if (rowIdx + ty < N) {
         // Reduce data into registers
         for (unsigned int offset = 0; offset < d; offset += 32) {
             // If d is not a multiple of 32
@@ -136,11 +137,11 @@ void test_vectorReductionXOR_v2 (float *A, const int d) {
 }
 
 void test_rowSumXOR_v2 (float *B, const int N, const int d) {
-    const int BN = 8
+    const int BN = 8;
     dim3 blockDim(BN * 32);
-    dim3 gridDim(CEIL_DIV(N,BN));
+    dim3 gridDim(CEIL_DIV(N, BN));
 
-    rowSumXOR_v2<<<gridDim, blockDim>>>(B, N, d);
+    rowSumXOR_v2<BN><<<gridDim, blockDim>>>(B, N, d);
 
     // Check for launch errors (like passing a CPU pointer!)
     cudaError_t err = cudaGetLastError();

@@ -7,6 +7,8 @@ With CUDA Fundamentals, I hope to explore the fundamentals of CUDA programming. 
 Kernels implemented so far:
 - [x] Reduction Algorithm: from PMPP
 - [x] Reduction Algorithm: Warp Shuffling (xor and down)
+- [x] rowSum using __shfl_xor_sync()
+- [ ] rowMax using __shfl_xor_sync()
 
 #### LAUNCH COMMANDS
 
@@ -31,10 +33,11 @@ nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 
 #### To-Do:
 
-* Expand __shfl_xor_sync to do matrix rowMax and rowSum
-* A more encompassing benchmark function
-* Thread mapping practices for GMEM -> SMEM loading
-* Maybe later do something abt kernels that suffer from bank conflicts, poor guys
+* **Implement rowMax**
+* **A more encompassing benchmark function**
+* **Experiment with namespaces**
+* Thread Mapping Practice: GMEM -> SMEM (later)
+* Experiment Bank Conflicts (later)
 * build.sh file to run launch command (later)
 
 ### Reduction Algorithm
@@ -133,6 +136,18 @@ Above we demonstrated a reduction algorithm using __shfl_down_sync. In the case 
 
 It is most simple if you follow the first thread (tx = 0) and see the accesses and then generalize it over other threads. A more natural and convincing proof follows from writing each thread idx and mirror idx in two's complements and doing the bitwise XOR yourself.
 
+### XOR Implementation (rowSum)
+
+I wrote a rowSum kernel that is suitable for all matrix sizes. It uses block-row tiling, butterfly all-reduce and warp-uniform branching to prevent warp divergence. 
+
+The idea is to group BN many warps in a block to work on BN many rows of a matrix of size N x d. It is a parallelized version of the above algorithm where each block is ofsetted to their respective row by moving pointers with B += blockIdx.x * BN * d; and then making each row in the block be reduced to each corresponding warp. Then XOR shuffle intrinsic described above is used to do a all-reduce reduction. 
+
+There are two if statements (boundary checks) wrapped in the kernel to prevent inactive threads from participating. Since a row consists of only a single warp, there is no way that the boundary check for rows can cause warp divergence. That is because either all threads within a warp are participating or neither are. To verify against cpu, I have decided to make each first thread of a row write its own reduced sum back to that row's first entry, though that can be changed according to your goals.
+
+## Design Choices
+
+For a quick note into organisation, I will be keeping CPU related code be written in C++ functions and GPU code in C. Thus it is common to see std::abs() in main.cu or utils.cu whereas you'll more often see fabsf() or fmaxf() in kernels and wrappers of reduction.cu . This design choice is motivated by the pure delusion of practicing with namespaces and making sure that things don't get out of the hand when I decide to implement more functions that share the same name.
+
 ## Worklog
 
 May 10, 2026 <br>
@@ -140,3 +155,6 @@ For now, I worked on organizing my github and getting comfortable with .cu and .
 
 May 11, 2026<br>
 Implemented shuffle intrinsics for warp-level reduction primitives. Did a small benchmark test. I will write a more generalized/encompassing benchmarking func. that I can just use to compare kernels more quickly in the future. Implemented XOR warp shuffling.
+
+May 12, 2026<br>
+Implemented rowSum using XOR warp shuffling that can handle matrices of all sizes. Organized my folder system. I'm still learning how the compiler communicates with .cu and .cuh files. Changed libraries from C to C++ and changed some function calls to start with std::. I'm still trying to figure out why C++ function calls are preffered and when they do not matter. Also experimented with template but I need a more solid example where it really makes a difference.
