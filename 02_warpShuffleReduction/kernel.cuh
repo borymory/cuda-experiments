@@ -1,13 +1,15 @@
 #pragma once
 #include <algorithm>
+#include <cuda_runtime.h>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <math.h>
-#include <cuda_runtime.h>
-#define FULL_MASK 0xffffffff
+
+#define FULL_MASK 0xffffffffu // unsigned, safer in bit shifting
 
 void test_vectorReduction_v2 (float *A, const int d);
 
 void test_vectorReductionXOR_v2 (float *A, const int d);
+
+void test_rowSumXOR_v2 (float *B, const int N, const int d);

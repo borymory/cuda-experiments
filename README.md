@@ -135,8 +135,8 @@ It is most simple if you follow the first thread (tx = 0) and see the accesses a
 
 ## Worklog
 
-May 11, 2026 <br>
+May 10, 2026 <br>
 For now, I worked on organizing my github and getting comfortable with .cu and .cuh. I experimented with launch commands using flags and I think this workflow will keep everything much more clearer. Especially having a template is great since any local changes to the kernel doesn't affect the previous kernels I wrote. With this, I hope that I can create benchmarking functions that can work with multiple kernels :)
 
-May 12, 2026<br>
+May 11, 2026<br>
 Implemented shuffle intrinsics for warp-level reduction primitives. Did a small benchmark test. I will write a more generalized/encompassing benchmarking func. that I can just use to compare kernels more quickly in the future. Implemented XOR warp shuffling.

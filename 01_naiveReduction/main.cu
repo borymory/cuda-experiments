@@ -1,11 +1,11 @@
-#include <stdio.h>
+#include <cstdio>
 #include "utils.cuh"
 #include "kernel.cuh"
 
 void cpu_reduction (float *src, float *dst, const int N, const int d) {
-    for (int i = 0; i < N; i++) {
+    for (unsigned int i = 0; i < N; i++) {
         float sum = 0;
-        for (int j = 0; j < d; j++) sum += src[i * d + j];
+        for (unsigned int j = 0; j < d; j++) sum += src[i * d + j];
         // Sum is stored at first column of each row, just like the kernel
         dst[i * d] = sum; // Ground truth
     }
@@ -13,8 +13,8 @@ void cpu_reduction (float *src, float *dst, const int N, const int d) {
 
 // VERIFY FIRST COLUMN OF EACH ROW OF CPU AND GPU
 bool cpu_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
-  for (uint i = 0; i < N; i++) {
-    if (fabsf(gpu_res[i * d] - cpu_res[i * d]) > 1e-4) return false;
+  for (unsigned int i = 0; i < N; i++) {
+    if (std::fabsf(gpu_res[i * d] - cpu_res[i * d]) > 1e-4) return false;
   }
   return true;
 }
@@ -29,12 +29,9 @@ int main(void) {
 
   // USE UNIFIED MEMORY - INITIALIATONS
   cudaMallocManaged(&B, N * d * sizeof(float));
-  cudaMallocHost(&B_ref, N * d * sizeof(float));
+  B_ref = (float*)std::malloc(N * d* sizeof(float));
 
   initMatrix(B, N, d);
-
-  // CREATE REFERANCE FOR CPU
-  // memCpy(&B_ref, &B, N*d*sizeof(float)); not needed we just write on top of it
 
   // CALCULATE GROUND TRUTH - CPU
   cpu_reduction(B, B_ref, N, d);
@@ -52,14 +49,14 @@ int main(void) {
   cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
-  printf("Kernel Performance: %.2f milliseconds\n", milliseconds);
+  std::sprintf("Kernel Performance: %.2f milliseconds\n", milliseconds);
 
   // VERIFY/BENCHMARK KERNEL
-  if (cpu_verify(B, B_ref, N, d)) printf("Succes!\n");
+  if (cpu_verify(B, B_ref, N, d)) std::printf("Succes!\n");
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
-  cudaFreeHost(B_ref);
+  std::free(B_ref);
 
   return 0;
 }
