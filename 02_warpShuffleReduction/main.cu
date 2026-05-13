@@ -42,7 +42,9 @@ bool cpu_array_verify (float *gpu_res, float cpu_res, const int d) {
 
 bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
   for (unsigned int i = 0; i < N; ++i) {
-    if (std::abs(gpu_res[i * d] - cpu_res[i]) > 1e-4) {
+    float diff = std::abs(gpu_res[i * d] - cpu_res[i]);
+    float relative_err = diff / std::abs(cpu_res[i]); // percentage error
+    if (relative_err > 1e-5) {
       std::printf("Error seen at row %d\n", i);
       std::printf("GPU: %f\n", gpu_res[i * d]);
       std::printf("CPU: %f\n", cpu_res[i]);
@@ -85,7 +87,7 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
   // PRINT RESULT
   std::printf("-- Benchmark Result --\n");
   std::printf("Average Time:  %.4f ms\n", avg_ms);
-  std::printf("Throughput:    %.2f Gb/s\n", bandwidth);
+  std::printf("Throughput:    %.2f GB/s\n", bandwidth);
   std::printf("Speedup from CPU:  %.2fx\n", cpu_ref_time / avg_ms);
 
   cudaEventDestroy(start);

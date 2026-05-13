@@ -31,10 +31,12 @@ nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 | v1 | Naive (Shared Memory) | 0.48 ms | Tree reduction w/ SMEM |
 | v2 | Warp Shuffle (Registers) | 0.38 ms | Register-to-register shuffles |
 
+**NOTE: These should be changed, they are not accurate!!**
+
 #### To-Do:
 
+* **Experiment with benchmark function**
 * **Implement rowMax**
-* **A more encompassing benchmark function**
 * **Experiment with namespaces**
 * Thread Mapping Practice: GMEM -> SMEM (later)
 * Experiment Bank Conflicts (later)
@@ -152,7 +154,7 @@ There are two if statements (boundary checks) wrapped in the kernel to prevent i
 
 ## Design Choices
 
-For a quick note into organisation, I will be keeping CPU related code be written in C++ functions and GPU code in C. Thus it is common to see std::abs() in main.cu or utils.cu whereas you'll more often see fabsf() or fmaxf() in kernels and wrappers of reduction.cu . This design choice is motivated by the pure delusion of practicing with namespaces and making sure that things don't get out of the hand when I decide to implement more functions that share the same name.
+For a quick note into organisation, I will be keeping CPU related code written in C++ functions and GPU code in C. Thus it is common to see std::abs() in main.cu or utils.cu whereas you'll more often see fabsf() or fmaxf() in kernels and wrappers of reduction.cu . This design choice is motivated by the pure delusion of practicing with namespaces and making sure that things don't get out of the hand when I decide to implement more functions that share the same name.
 
 ## Worklog
 
@@ -164,3 +166,14 @@ Implemented shuffle intrinsics for warp-level reduction primitives. Did a small 
 
 May 12, 2026<br>
 Implemented rowSum using XOR warp shuffling that can handle matrices of all sizes. Organized my folder system. I'm still learning how the compiler communicates with .cu and .cuh files. Changed libraries from C to C++ and changed some function calls to start with std::. I'm still trying to figure out why C++ function calls are preffered and when they do not matter. Also experimented with template but I need a more solid example where it really makes a difference.
+
+May 13, 2026<br>
+Tried to implement a benchmark function that calculated bandwidth, speedup from cpu and average time by omitting warmup times and averaging over multiple iterations. Turns out, on silicon time is much much more smaller than the first multiple runs. Here is a small result of how matrix size affects my throughput.
+
+To prevent my GPU from using L2 cache and cheat the benchmark, I decided to use matrix sizes bigger than 16k x 1024. (67 MB).
+
+| Size | Time (ms) | Bandwidth (GB/s) | Bandwidth Utilization (%) |
+| :--- | :--- | :--- | :--- |
+| 16384 x 1024 | 0.2832 | 237.18 | 74.1 |
+| 32768 x 1024 | 0.5628 | 238.70 | 75.6 |
+| 65536 x 1024 | 1.1193 | 240.06 | 75.0 |
