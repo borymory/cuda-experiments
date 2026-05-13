@@ -2,6 +2,8 @@
 #include "utils.cuh"
 #include "kernel.cuh"
 
+
+// -- CPU FUNCTIONS --
 // CPU CODE - declare float cpu_res and pass it as &cpu_res into argument inside main func
 void cpu_array_reduction (float *src, float *cpu_res, const int d) {
   float tmpSum = 0.0f;
@@ -29,9 +31,10 @@ void cpu_rowSum (float *src, float *cpu_res, const int N, const int d, float *cp
     cpu_res[i] = rowResult;
   }
   double cpu_stop = get_time_ms();
-  *cpu_ref_time = (float)(cpu_stop - cpu_start);
+  *cpu_ref_time = (float)(cpu_stop - cpu_start); // Write to pointer
 }
 
+// -- VERIFY FUNCTIONS --
 bool cpu_array_verify (float *gpu_res, float cpu_res, const int d) {
   if (std::abs(gpu_res[0] - cpu_res) > 1e-4) return false;
   return true;
@@ -44,25 +47,22 @@ bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d
   return true;
 }
 
-//
-//-- BENCHMARK --
-//
-
-void benchmark_rowSum (float *B, const int N, const int d, float *B_out, float cpu_ref_time) {
+// -- BENCHMARK FUNCTIONS --
+void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
 
   // WARM UP KERNEL
   for (int i = 0; i < 10; ++i) {
-    test_rowSumXOR_v2(B, N, d, B_out);
+    test_rowSumXOR_v2(B, N, d);
   }
 
   // EXECUTION LOOP
   int iterations = 100;
   cudaEventRecord(start);
   for (int i = 0; i < iterations; ++i) {
-    test_rowSumXOR_v2(B, N, d, B_out);
+    test_rowSumXOR_v2(B, N, d);
   }
   cudaEventRecord(stop);
   cudaEventSynchronize(stop); // Acts as synchronize
@@ -92,7 +92,6 @@ void benchmark_rowSum (float *B, const int N, const int d, float *B_out, float c
 int main(void) {
   
   float *B;
-  float *B_out;
   float *B_cpu;
   float cpu_ref_time;
 
@@ -101,23 +100,22 @@ int main(void) {
 
   // USE UNIFIED MEMORY - INITIALIATONS
   cudaMallocManaged(&B, N * d * sizeof(float));
-  cudaMallocManaged(&B_out, N * d * sizeof(float));
   B_cpu = (float*)std::malloc(N * sizeof(float));
 
-  initMatrix(B, N, d);
+  // -- BENCHMARK RUN --
+  initMatrix(B, N, d);  // INIT MATRIX
+  cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
+  benchmark_rowSum(B, N, d, cpu_ref_time);  // BENCHMARK KERNEL
 
-  // CREATE REFERANCE FOR CPU - TIME IT
-  cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time);
-
-  // RUN KERNEL
-
-  // BENCHMARK/VERIFY KERNEL
-  benchmark_rowSum(B, N, d, B_out, cpu_ref_time);
-  if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");
+  // -- VERIFY KERNEL RUN --
+  initMatrix(B, N, d);  // INIT MATRIX
+  cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // GET CPU RESULT
+  test_rowSumXOR_v2(B, N, d); // GET GPU RESULT
+  cudaDeviceSynchronize();
+  if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");  // VERIFY KERNEL
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
-  cudaFree(B_out);
   std::free(B_cpu);
 
   return 0;

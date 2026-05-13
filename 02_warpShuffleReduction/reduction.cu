@@ -76,7 +76,7 @@ __global__ void vectorReductionXOR_v2 (float *A, const int d) {
 }
 
 template<const int BN>
-__global__ void rowSumXOR_v2 (float *B, const int N, const int d, float *B_out) {
+__global__ void rowSumXOR_v2 (float *B, const int N, const int d) {
     // We launch CEIL_DIV(N, BN) many blocks
     // We have BN * 32 many threads per block
 
@@ -104,7 +104,7 @@ __global__ void rowSumXOR_v2 (float *B, const int N, const int d, float *B_out) 
             threadVal += __shfl_xor_sync(FULL_MASK, threadVal, mirrorIdx);
         }
 
-        // Write result back
+        // Write result
         if (tx == 0) B[ty * d] = threadVal;
     }
 }
@@ -136,12 +136,12 @@ void test_vectorReductionXOR_v2 (float *A, const int d) {
         printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
 }
 
-void test_rowSumXOR_v2 (float *B, const int N, const int d, float *B_out) {
+void test_rowSumXOR_v2 (float *B, const int N, const int d) {
     const int BN = 8;
     dim3 blockDim(BN * 32);
     dim3 gridDim(CEIL_DIV(N, BN));
 
-    rowSumXOR_v2<BN><<<gridDim, blockDim>>>(B, N, d, B_out);
+    rowSumXOR_v2<BN><<<gridDim, blockDim>>>(B, N, d);
 
     // Check for launch errors (like passing a CPU pointer!)
     cudaError_t err = cudaGetLastError();
