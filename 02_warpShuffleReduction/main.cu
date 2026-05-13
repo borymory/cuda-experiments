@@ -42,7 +42,12 @@ bool cpu_array_verify (float *gpu_res, float cpu_res, const int d) {
 
 bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d) {
   for (unsigned int i = 0; i < N; ++i) {
-    if (std::abs(gpu_res[i * d] - cpu_res[i]) > 1e-4) return false;
+    if (std::abs(gpu_res[i * d] - cpu_res[i]) > 1e-4) {
+      std::printf("Error seen at row %d\n", i);
+      std::printf("GPU: %f\n", gpu_res[i * d]);
+      std::printf("CPU: %f\n", cpu_res[i]);
+      return false;
+    }
   }
   return true;
 }
