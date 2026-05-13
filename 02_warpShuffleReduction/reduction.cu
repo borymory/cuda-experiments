@@ -76,7 +76,7 @@ __global__ void vectorReductionXOR_v2 (float *A, const int d) {
 }
 
 template<const int BN>
-__global__ void rowSumXOR_v2 (float *B, const int N, const int d) {
+__global__ void rowSumXOR_v2 (float *B, const int N, const int d, float *B_out) {
     // We launch CEIL_DIV(N, BN) many blocks
     // We have BN * 32 many threads per block
 
@@ -136,12 +136,12 @@ void test_vectorReductionXOR_v2 (float *A, const int d) {
         printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
 }
 
-void test_rowSumXOR_v2 (float *B, const int N, const int d) {
+void test_rowSumXOR_v2 (float *B, const int N, const int d, float *B_out) {
     const int BN = 8;
     dim3 blockDim(BN * 32);
     dim3 gridDim(CEIL_DIV(N, BN));
 
-    rowSumXOR_v2<BN><<<gridDim, blockDim>>>(B, N, d);
+    rowSumXOR_v2<BN><<<gridDim, blockDim>>>(B, N, d, B_out);
 
     // Check for launch errors (like passing a CPU pointer!)
     cudaError_t err = cudaGetLastError();

@@ -48,21 +48,21 @@ bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d
 //-- BENCHMARK --
 //
 
-void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
+void benchmark_rowSum (float *B, const int N, const int d, float *B_out, float cpu_ref_time) {
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
 
   // WARM UP KERNEL
   for (int i = 0; i < 10; ++i) {
-    test_rowSumXOR_v2(B, N, d);
+    test_rowSumXOR_v2(B, N, d, B_out);
   }
 
   // EXECUTION LOOP
   int iterations = 100;
   cudaEventRecord(start);
   for (int i = 0; i < iterations; ++i) {
-    test_rowSumXOR_v2(B, N, d);
+    test_rowSumXOR_v2(B, N, d, B_out);
   }
   cudaEventRecord(stop);
   cudaEventSynchronize(stop); // Acts as synchronize
@@ -92,14 +92,16 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
 int main(void) {
   
   float *B;
+  float *B_out;
   float *B_cpu;
   float cpu_ref_time;
 
-  const int N = 256;
-  const int d = 128;
+  const int N = 16384;
+  const int d = 1024;
 
   // USE UNIFIED MEMORY - INITIALIATONS
   cudaMallocManaged(&B, N * d * sizeof(float));
+  cudaMallocManaged(&B_out, N * d * sizeof(float));
   B_cpu = (float*)std::malloc(N * sizeof(float));
 
   initMatrix(B, N, d);
@@ -107,14 +109,15 @@ int main(void) {
   // CREATE REFERANCE FOR CPU - TIME IT
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time);
 
-  // BENCHMARK KERNEL
-  benchmark_rowSum(B, N, d, cpu_ref_time);
+  // RUN KERNEL
 
-  // VERIFY KERNEL
+  // BENCHMARK/VERIFY KERNEL
+  benchmark_rowSum(B, N, d, B_out, cpu_ref_time);
   if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");
 
   // FREE MEMORY ALLOCATION
   cudaFree(B);
+  cudaFree(B_out);
   std::free(B_cpu);
 
   return 0;
