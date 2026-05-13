@@ -23,6 +23,8 @@
     }                                             \
 } while(0)
 
+double get_time_ms();
+
 // array initializer of size d
 void initArray(float *A, const int d);
 

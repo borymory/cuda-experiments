@@ -40,6 +40,12 @@ nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 * Experiment Bank Conflicts (later)
 * build.sh file to run launch command (later)
 
+### TODAY - To-Do
+
+Today is about: Benchmarking Functions
+
+Today is NOT about: Optimizing Kernels
+
 ### Reduction Algorithm
 
 Reduction algorithm's are used to extract a single value from an array. Generally speaking, with proper index mapping, it can be also applied to matrices and then a rowSum or a rowMax can be achieved. However, the idea after it is to utilize the most threads within a warp to reduce **warp divergence**. That is, a warp (32 threads) following the same control path is much more favorable then some of it executing one part and the rest of it another part (seen most commonly in if-else control statements). Warp divergence can in turn increases the overhead time.

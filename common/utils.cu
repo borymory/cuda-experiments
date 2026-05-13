@@ -1,5 +1,12 @@
 #include "utils.cuh"
 
+double get_time_ms() {
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    // Convert seconds and microseconds to a single millisecond value
+    return (double)tv.tv_sec * 1000.0 + (double)tv.tv_usec / 1000.0;
+}
+
 void initArray(float *A, const int d) {
   for (unsigned int i = 0; i < d; ++i) A[i] = (float)std::rand() / RAND_MAX;
 }

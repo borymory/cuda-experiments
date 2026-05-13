@@ -19,8 +19,8 @@ void cpu_array_reduction (float *src, float *cpu_res, const int d) {
 // Instead we add a * (dereference operator) which makes the computer not look at the pointer but
 // to the value inside that pointer and modify that to tmpSum
 
-void cpu_rowSum (float *src, float *cpu_res, const int N, const int d) {
-
+void cpu_rowSum (float *src, float *cpu_res, const int N, const int d, float *cpu_ref_time) {
+  double cpu_start = get_time_ms();
   for (unsigned int i = 0; i < N; ++i) {
 
     float rowResult = 0.0f;
@@ -28,7 +28,8 @@ void cpu_rowSum (float *src, float *cpu_res, const int N, const int d) {
       rowResult += src[i * d + j];
     cpu_res[i] = rowResult;
   }
-
+  double cpu_stop = get_time_ms();
+  *cpu_ref_time = (float)(cpu_stop - cpu_start);
 }
 
 bool cpu_array_verify (float *gpu_res, float cpu_res, const int d) {
@@ -43,12 +44,56 @@ bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d
   return true;
 }
 
+//
+//-- BENCHMARK --
+//
+
+void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+
+  // WARM UP KERNEL
+  for (int i = 0; i < 10; ++i) {
+    test_rowSumXOR_v2(B, N, d);
+  }
+
+  // EXECUTION LOOP
+  int iterations = 100;
+  cudaEventRecord(start);
+  for (int i = 0; i < iterations; ++i) {
+    test_rowSumXOR_v2(B, N, d);
+  }
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop); // Acts as synchronize
+
+  // NOTE TIME STOP
+  float ms = 0;
+  cudaEventElapsedTime(&ms, start, stop);
+  float avg_ms = ms / iterations;
+
+  // BANDWIDTH CALCULATION
+  // Formula: Bytes moved = (Read N * d + write N) * 4 Bytes, time = avg_ms
+  double gb = (double)(N * d + N) * sizeof(float) / 1e9;
+  double bandwidth = gb / (avg_ms / 1000.0);
+
+  // PRINT RESULT
+  std::printf("-- Benchmark Result --\n");
+  std::printf("Average Time:  %.4f ms\n", avg_ms);
+  std::printf("Throughput:    %.2f Gb/s\n", bandwidth);
+  std::printf("Speedup from CPU:  %.2fx\n", cpu_ref_time / avg_ms);
+
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+}
+
 /// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
 
 int main(void) {
   
   float *B;
   float *B_cpu;
+  float cpu_ref_time;
 
   const int N = 256;
   const int d = 128;
@@ -59,25 +104,13 @@ int main(void) {
 
   initMatrix(B, N, d);
 
-  // CREATE REFERANCE FOR CPU
-  cpu_rowSum(B, B_cpu, N, d);
+  // CREATE REFERANCE FOR CPU - TIME IT
+  cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time);
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start);
+  // BENCHMARK KERNEL
+  benchmark_rowSum(B, N, d, cpu_ref_time);
 
-  // RUN KERNEL
-  test_rowSumXOR_v2(B, N, d);
-
-  // NOTE TIME STOP, ACTS AS SYNCHRONIZE
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  std::printf("Kernel Performance: %.2f milliseconds\n", milliseconds);
-
-  // VERIFY/BENCHMARK KERNEL
+  // VERIFY KERNEL
   if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");
 
   // FREE MEMORY ALLOCATION
