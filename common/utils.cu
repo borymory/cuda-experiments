@@ -34,3 +34,15 @@ bool validate(float *gpu_res, float *cpu_res, int size) {
     }
     return true;
 }
+
+void checkLast(const char* const file, const int line)
+    {
+        cudaError_t const err{cudaGetLastError()};
+        if (err != cudaSuccess)
+        {
+            std::cerr << "CUDA Runtime Error at: " << file << ":" << line
+                    << std::endl;
+            std::cerr << cudaGetErrorString(err) << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+    }

@@ -55,10 +55,23 @@ bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d
 }
 
 // -- BENCHMARK FUNCTIONS --
-void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
+void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, bool flush) {
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
+
+  // Get L2 cache size for flushing
+  int device = 0;
+  int l2_size = 0;
+  float *d_F = nullptr;
+
+  CUDA_CHECK(cudaGetDevice(&device));
+  CUDA_CHECK(cudaGetDeviceAttribute(&l2_size, cudaDevAttrL2CacheSize, device));
+  size_t sizeF = l2_size * 2;
+
+  // ALLOCATE-COPY 
+  CHECK_CUDA_ERROR(cudaMalloc((void **)&d_F, sizeF));
+  CUDA_CHECK(cudaMemset((void *)d_F, 0 , sizeF));
 
   // WARM UP KERNEL
   for (int i = 0; i < 10; ++i) {
@@ -67,16 +80,26 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
 
   // EXECUTION LOOP
   int iterations = 100;
-  cudaEventRecord(start);
-  for (int i = 0; i < iterations; ++i) {
-    test_rowSumXOR_v2(B, N, d);
-  }
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop); // Acts as synchronize
-
-  // NOTE TIME STOP
   float ms = 0;
-  cudaEventElapsedTime(&ms, start, stop);
+  for (int i = 0; i < iterations; ++i) {
+    float partial_ms = 0;
+    if (flush) {
+      CHECK_CUDA(cudaMemsetAsync((void *)d_F, 0, sizeF));
+      CHECK_CUDA(cudaDeviceSynchronize());
+      CHECK_LAST_CUDA_ERROR();
+    }
+
+    cudaEventRecord(start);
+
+    test_rowSumXOR_v2(B, N, d);
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop); // Acts as synchronize
+    cudaEventElapsedTime(&partial_ms, start, stop);
+    ms += partial_ms;
+  }
+
+  // CALC AVG_TIME
   float avg_ms = ms / iterations;
 
   // BANDWIDTH CALCULATION
@@ -90,8 +113,11 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time) {
   std::printf("Throughput:    %.2f GB/s\n", bandwidth);
   std::printf("Speedup from CPU:  %.2fx\n", cpu_ref_time / avg_ms);
 
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  // FREE FLUSH MEMORY
+  CHECK_CUDA(cudaFree(d_F));
+
+  CHECK_CUDA(cudaEventDestroy(start));
+  CHECK_CUDA(cudaEventDestroy(stop));
 }
 
 /// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH

@@ -35,18 +35,15 @@ nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 
 #### To-Do:
 
-* **Experiment with benchmark function**
-* **Implement rowMax**
+* Cuda Streams -> std::function and std::bind
+* **Benchmark Details - L2 cache effects etc...**
+* **CUDA proper error checking**
 * **Experiment with namespaces**
+* Implement rowMax (later)
 * Thread Mapping Practice: GMEM -> SMEM (later)
 * Experiment Bank Conflicts (later)
 * build.sh file to run launch command (later)
 
-### TODAY - To-Do
-
-Today is about: Benchmarking Functions
-
-Today is NOT about: Optimizing Kernels
 
 ### Reduction Algorithm
 

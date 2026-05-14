@@ -49,5 +49,8 @@ int main(void) {
   cudaFree(B);
   std::free(B_cpu);
 
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
+
   return 0;
 }
