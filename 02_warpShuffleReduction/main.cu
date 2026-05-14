@@ -94,7 +94,7 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, b
     test_rowSumXOR_v2(B, N, d);
 
     cudaEventRecord(stop);
-    cudaEventSynchronize(stop); // Acts as synchronize
+    cudaEventSynchronize(stop); // Synchronize at cudaEvent_t stop
     cudaEventElapsedTime(&partial_ms, start, stop);
     ms += partial_ms;
   }

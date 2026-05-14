@@ -35,7 +35,7 @@ nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
 
 #### To-Do:
 
-* Cuda Streams -> std::function and std::bind
+* Learn std::function and std::bind for more versatile benchmark functions
 * **Benchmark Details - L2 cache effects etc...**
 * **CUDA proper error checking**
 * **Experiment with namespaces**
@@ -174,3 +174,6 @@ To prevent my GPU from using L2 cache and cheat the benchmark, I decided to use 
 | 16384 x 1024 | 0.2832 | 237.18 | 74.1 |
 | 32768 x 1024 | 0.5628 | 238.70 | 75.6 |
 | 65536 x 1024 | 1.1193 | 240.06 | 75.0 |
+
+May 14, 2026<br>
+Implemented Cache Flushing on benchmarking. Increasing matrix sizes more than what the L2 cache size allows yields a very similar effect as to L2 flushing and generally speaking the 'performance cheating' given by L2 cache is quite irrelevant in real life applications where matrix sizes, for example, exceed 16k x 16k. Thus I find it quite irrelevant. Yet I still need to research proper cuda error and stream handling and learn how to make a more encompassing benchmarking function that can handle all my kernels. I think it has something to do with templates. I also plan to implement more c++ and also experiment with namespaces in my functions.
