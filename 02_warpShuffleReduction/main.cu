@@ -66,11 +66,11 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, b
   float *d_F = nullptr;
 
   CUDA_CHECK(cudaGetDevice(&device));
-  CUDA_CHECK(cudaGetDeviceAttribute(&l2_size, cudaDevAttrL2CacheSize, device));
+  CUDA_CHECK(cudaDeviceGetAttribute(&l2_size, cudaDevAttrL2CacheSize, device));
   size_t sizeF = l2_size * 2;
 
   // ALLOCATE-COPY 
-  CHECK_CUDA_ERROR(cudaMalloc((void **)&d_F, sizeF));
+  CUDA_CHECK(cudaMalloc((void **)&d_F, sizeF));
   CUDA_CHECK(cudaMemset((void *)d_F, 0 , sizeF));
 
   // WARM UP KERNEL
@@ -84,8 +84,8 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, b
   for (int i = 0; i < iterations; ++i) {
     float partial_ms = 0;
     if (flush) {
-      CHECK_CUDA(cudaMemsetAsync((void *)d_F, 0, sizeF));
-      CHECK_CUDA(cudaDeviceSynchronize());
+      CUDA_CHECK(cudaMemsetAsync((void *)d_F, 0, sizeF));
+      CUDA_CHECK(cudaDeviceSynchronize());
       CHECK_LAST_CUDA_ERROR();
     }
 
@@ -112,12 +112,13 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, b
   std::printf("Average Time:  %.4f ms\n", avg_ms);
   std::printf("Throughput:    %.2f GB/s\n", bandwidth);
   std::printf("Speedup from CPU:  %.2fx\n", cpu_ref_time / avg_ms);
+  std::cout << "Flush: " << std::boolalpha << flush << std::endl;
 
   // FREE FLUSH MEMORY
-  CHECK_CUDA(cudaFree(d_F));
+  CUDA_CHECK(cudaFree(d_F));
 
-  CHECK_CUDA(cudaEventDestroy(start));
-  CHECK_CUDA(cudaEventDestroy(stop));
+  CUDA_CHECK(cudaEventDestroy(start));
+  CUDA_CHECK(cudaEventDestroy(stop));
 }
 
 /// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
@@ -138,7 +139,7 @@ int main(void) {
   // -- BENCHMARK RUN --
   initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
-  benchmark_rowSum(B, N, d, cpu_ref_time);  // BENCHMARK KERNEL
+  benchmark_rowSum(B, N, d, cpu_ref_time, true);  // BENCHMARK KERNEL
 
   // -- VERIFY KERNEL RUN --
   initMatrix(B, N, d);  // INIT MATRIX
