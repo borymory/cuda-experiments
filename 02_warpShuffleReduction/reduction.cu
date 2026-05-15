@@ -136,12 +136,12 @@ void test_vectorReductionXOR_v2 (float *A, const int d) {
         printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
 }
 
-void test_rowSumXOR_v2 (float *B, const int N, const int d) {
+void test_rowSumXOR_v2 (float *B, const int N, const int d, cudaStream_t stream) {
     const int BN = 8;
     dim3 blockDim(BN * 32);
     dim3 gridDim(CEIL_DIV(N, BN));
 
-    rowSumXOR_v2<BN><<<gridDim, blockDim>>>(B, N, d);
+    rowSumXOR_v2<BN><<<gridDim, blockDim, 0, stream>>>(B, N, d);
 
     // Check for launch errors (like passing a CPU pointer!)
     cudaError_t err = cudaGetLastError();

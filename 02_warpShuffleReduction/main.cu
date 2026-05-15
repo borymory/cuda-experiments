@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "utils.cuh"
 #include "kernel.cuh"
+#include "benchmark_common.cuh"
 
 
 // -- CPU FUNCTIONS --
@@ -124,6 +125,7 @@ void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, b
 /// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
 
 int main(void) {
+  cudaStream_t stream;
   
   float *B;
   float *B_cpu;
@@ -133,24 +135,34 @@ int main(void) {
   const int d = 1024;
 
   // USE UNIFIED MEMORY - INITIALIATONS
-  cudaMallocManaged(&B, N * d * sizeof(float));
+  CUDA_CHECK(cudaMallocManaged(&B, N * d * sizeof(float)));
   B_cpu = (float*)std::malloc(N * sizeof(float));
+  CUDA_CHECK(cudaStreamCreate(&stream));
 
-  // -- BENCHMARK RUN --
+  // -- BENCHMARK STATISTICS --
+  constexpr size_t num_repeats{10000};
+  constexpr size_t num_warmups{1000};
   initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
-  benchmark_rowSum(B, N, d, cpu_ref_time, true);  // BENCHMARK KERNEL
+
+  // -- BENCHMARK RUN --
+  std::function<cudaError_t(cudaStream_t)> launch_kernel = std::bind(test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
+  benchmark_kernel(launch_kernel, stream, num_repeats, num_warmups, cpu_ref_time, true);
+  //benchmark_rowSum(B, N, d, cpu_ref_time, true);  // BENCHMARK KERNEL
 
   // -- VERIFY KERNEL RUN --
   initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // GET CPU RESULT
   test_rowSumXOR_v2(B, N, d); // GET GPU RESULT
-  cudaDeviceSynchronize();
+  CUDA_CHECK(cudaDeviceSynchronize());
   if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");  // VERIFY KERNEL
 
   // FREE MEMORY ALLOCATION
-  cudaFree(B);
+  CUDA_CHECK(cudaFree(B));
   std::free(B_cpu);
+
+  // DESTROY STREAM
+  CUDA_CHECK(cudaStreamDestroy(stream));
 
   return 0;
 }
