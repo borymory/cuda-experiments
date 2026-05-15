@@ -1,5 +1,5 @@
 #include <cstdio>
-#include "utils.cuh"
+#include "benchmark.cuh"
 #include "kernel.cuh"
 #include "benchmark_common.cuh"
 
@@ -140,20 +140,20 @@ int main(void) {
   CUDA_CHECK(cudaStreamCreate(&stream));
 
   // -- BENCHMARK STATISTICS --
-  constexpr size_t num_repeats{10000};
-  constexpr size_t num_warmups{1000};
+  constexpr size_t num_repeats = 10000;
+  constexpr size_t num_warmups = 1000;
   initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
 
-  // -- BENCHMARK RUN --
-  std::function<cudaError_t(cudaStream_t)> launch_kernel = std::bind(test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
+  // -- BENCHMARK KERNEL RUN --
+  std::function<void(cudaStream_t)> launch_kernel = std::bind(test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
   benchmark_kernel(launch_kernel, stream, num_repeats, num_warmups, cpu_ref_time, true);
   //benchmark_rowSum(B, N, d, cpu_ref_time, true);  // BENCHMARK KERNEL
 
   // -- VERIFY KERNEL RUN --
   initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // GET CPU RESULT
-  test_rowSumXOR_v2(B, N, d); // GET GPU RESULT
+  test_rowSumXOR_v2(B, N, d, stream); // GET GPU RESULT
   CUDA_CHECK(cudaDeviceSynchronize());
   if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");  // VERIFY KERNEL
 

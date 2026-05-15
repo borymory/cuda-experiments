@@ -1,4 +1,7 @@
+#pragma once
 #include "utils.cuh"
+#include <iostream>    // For std::cerr, std::endl
+#include <functional>  // For std::function and std::bind
 
 template <typename T>
 void benchmark_kernel (std::function<T(cudaStream_t)> bound_function, cudaStream_t stream, size_t num_repeats = 100, size_t num_warmups = 100, float cpu_ref_time, bool flush_l2_cache) {
@@ -7,16 +10,16 @@ void benchmark_kernel (std::function<T(cudaStream_t)> bound_function, cudaStream
     cudaEventCreate(&stop);
 
 
-    int device{0};
-    int l2_size{0};
-    float *d_F = nullptr;
+    int device = 0;
+    int l2_size = 0;
+    float *d_F;
 
     CUDA_CHECK(cudaGetDevice(&device));
     CUDA_CHECK(cudaDeviceGetAttribute(&l2_size, cudaDevAttrL2CacheSize, device));
     size_t sizeF = l2_size * 2;
 
     // ALLOCATE
-    CUDA_CHECK(cudaMalloc((void **)&d_F, sizeF));
+    CUDA_CHECK(cudaMalloc(&d_F, sizeF));
 
     // WARMUP
     for (size_t i{0}; i < num_warmups; ++i) {
@@ -24,12 +27,12 @@ void benchmark_kernel (std::function<T(cudaStream_t)> bound_function, cudaStream
     }
 
     // EXECUTION LOOP
-    float time{0.0f};
-    float partial_time{0.0f};
+    float time = 0.0f;
+    float partial_time = 0.0f;
 
-    for (size_t i{0}; i < num_repeats; ++i) {
+    for (size_t i = 0; i < num_repeats; ++i) {
         if (flush_l2_cache) {
-            CUDA_CHECK(cudaMemsetAsync((void *)d_F, 0, sizeF, stream));
+            CUDA_CHECK(cudaMemsetAsync(d_F, 0, sizeF, stream));
             CUDA_CHECK(cudaStreamSynchronize(stream));
             CHECK_LAST_CUDA_ERROR();
         }
