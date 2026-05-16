@@ -149,7 +149,7 @@ int main(void) {
 
   // -- BENCHMARK KERNEL RUN --
   std::function<void(cudaStream_t)> launch_kernel 
-    = std::bind(test_rowSumXOR_v2, B, N, d, sTtd::placeholders::_1);
+    = std::bind(test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
   benchmark_kernel(launch_kernel, stream, bytes_moved,  cpu_ref_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --

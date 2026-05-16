@@ -9,8 +9,8 @@ void benchmark_kernel (
     cudaStream_t stream, 
     size_t bytes_moved,
     float cpu_ref_time, 
-    size_t num_repeats = 100, 
-    size_t num_warmups = 100, 
+    size_t num_repeats, 
+    size_t num_warmups, 
     bool flush_l2_cache)
 {
     // CREATE CUDA EVENT
@@ -50,12 +50,12 @@ void benchmark_kernel (
         CUDA_CHECK(cudaEventRecord(stop, stream));
 
         CUDA_CHECK(cudaEventSynchronize(stop));
-        CUDA_CHECK(cudaEventElapsedTime(&partial_time, start, stop));
+        CUDA_CHECK(cudaEventElapsedTime(&partial_ms, start, stop));
         total_ms += partial_ms;
     }
 
     // CALC AVG_TIME
-    float avg_ms = time / iterations;
+    float avg_ms = total_ms / num_repeats;
 
     // BANDWIDTH CALCULATION
     // Formula: Bytes moved = (Read N * d + write N) * 4 Bytes, time = avg_ms
