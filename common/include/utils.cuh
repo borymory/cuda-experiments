@@ -2,6 +2,7 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <iostream>    // For std::cerr, std::endl
+#include <functional>  // For std::function and std::bind
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
