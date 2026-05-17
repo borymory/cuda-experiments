@@ -1,6 +1,7 @@
 #include <cstdio>
-#include "benchmark.cuh"
+#include "utils.cuh"
 #include "kernel.cuh"
+#include "benchmark.cuh"
 
 
 // -- CPU FUNCTIONS --
