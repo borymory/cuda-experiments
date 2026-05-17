@@ -1,47 +1,32 @@
-# CUDA Experiments
-I hope to shape this repo into a collection of projects that helped me learn CUDA.
+# CUDA SOTA IMPLEMENTATION PRACTICE
 
-## CUDA Fundamentals
-With CUDA Fundamentals, I hope to explore the fundamentals of CUDA programming. I plan to implement basic kernels and slowly ramp it up and see where it goes.
+A "no-tutorial" journey into implementing State-of-the-Art AI kernels in CUDA.
+
+## The Mission
+
+To learn by doing. Starting from basic kernels and slowly ramping it up, towards kernels like FlashAttn. The current target is **FlashAttention**, implemented from scratch.
+
+## Implementation Roadmap
 
 Kernels implemented so far:
 - [x] Reduction Algorithm: from PMPP
 - [x] Reduction Algorithm: Warp Shuffling (xor and down)
 - [x] rowSum using __shfl_xor_sync()
-- [ ] rowMax using __shfl_xor_sync()
+- [x] rowMax using __shfl_xor_sync()
+- [ ] Online Softmax
 
-#### LAUNCH COMMANDS
+## Rules
 
-Move into desired kernel directory, e.g:
-
-```
-cd cuda-experiments/01_naiveReduction
-```
-
-Launch using nvcc:
-
-```
-nvcc -I../common main.cu reduction.cu ../common/utils.cu -o test_run
-```
-
-#### To-Do:
-
-* **CUDA proper error checking**
-* **Experiment with namespaces**
-* Implement rowMax (later)
-* Thread Mapping Practice: GMEM -> SMEM (later)
-* Experiment Bank Conflicts (later)
-* build.sh file to run launch command (later)
-
-## Design Choices
-
-For a quick note into organisation, I will be keeping CPU related code written in C++ functions and GPU code in C. Thus it is common to see std::abs() in main.cu or utils.cu whereas you'll more often see fabsf() or fmaxf() in kernels and wrappers of reduction.cu . This design choice is motivated by the pure delusion of practicing with namespaces and making sure that things don't get out of the hand when I decide to implement more functions that share the same name.
+- [ ] Full `CUDA_CHECK` error handling on every API call.
+- [ ] Proper C++ Namespacing and Header/Source separation.
+- [ ] `build.sh` scripting for reproducible experiments.
+- [ ] Benchmarking GB/s and % of Peak Bandwidth.
 
 ## Benchmarking
 
 I have included a cold and hot start benchmarking function in common/benchmarking.cuh. For a cold start, L2 cache is flushed before every kernel launch and for a hot start, the kernel is launched, without L2 flush, iteratively and averaged over time to yield statistics. I don't think I will but maybe later on I can sample these kernel launches and do statistics on them... That may be for some time later.
 
-## Worklog
+## Worklog - Temporary
 
 May 10, 2026 <br>
 For now, I worked on organizing my github and getting comfortable with .cu and .cuh. I experimented with launch commands using flags and I think this workflow will keep everything much more clearer. Especially having a template is great since any local changes to the kernel doesn't affect the previous kernels I wrote. With this, I hope that I can create benchmarking functions that can work with multiple kernels :)

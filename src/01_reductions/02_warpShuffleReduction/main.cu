@@ -55,73 +55,6 @@ bool cpu_rowSum_verify (float *gpu_res, float *cpu_res, const int N, const int d
   return true;
 }
 
-// -- BENCHMARK FUNCTIONS --
-void benchmark_rowSum (float *B, const int N, const int d, float cpu_ref_time, bool flush) {
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-
-  // Get L2 cache size for flushing
-  int device = 0;
-  int l2_size = 0;
-  float *d_F = nullptr;
-
-  CUDA_CHECK(cudaGetDevice(&device));
-  CUDA_CHECK(cudaDeviceGetAttribute(&l2_size, cudaDevAttrL2CacheSize, device));
-  size_t sizeF = l2_size * 2;
-
-  // ALLOCATE-COPY 
-  CUDA_CHECK(cudaMalloc((void **)&d_F, sizeF));
-  CUDA_CHECK(cudaMemset((void *)d_F, 0 , sizeF));
-
-  // WARM UP KERNEL
-  for (int i = 0; i < 10; ++i) {
-    test_rowSumXOR_v2(B, N, d);
-  }
-
-  // EXECUTION LOOP
-  int iterations = 100;
-  float ms = 0;
-  for (int i = 0; i < iterations; ++i) {
-    float partial_ms = 0;
-    if (flush) {
-      CUDA_CHECK(cudaMemsetAsync((void *)d_F, 0, sizeF));
-      CUDA_CHECK(cudaDeviceSynchronize());
-      CHECK_LAST_CUDA_ERROR();
-    }
-
-    cudaEventRecord(start);
-
-    test_rowSumXOR_v2(B, N, d);
-
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop); // Synchronize at cudaEvent_t stop
-    cudaEventElapsedTime(&partial_ms, start, stop);
-    ms += partial_ms;
-  }
-
-  // CALC AVG_TIME
-  float avg_ms = ms / iterations;
-
-  // BANDWIDTH CALCULATION
-  // Formula: Bytes moved = (Read N * d + write N) * 4 Bytes, time = avg_ms
-  double gb = (double)(N * d + N) * sizeof(float) / 1e9;
-  double bandwidth = gb / (avg_ms / 1000.0);
-
-  // PRINT RESULT
-  std::printf("-- Benchmark Result --\n");
-  std::printf("Average Time:  %.4f ms\n", avg_ms);
-  std::printf("Throughput:    %.2f GB/s\n", bandwidth);
-  std::printf("Speedup from CPU:  %.2fx\n", cpu_ref_time / avg_ms);
-  std::cout << "Flush: " << std::boolalpha << flush << std::endl;
-
-  // FREE FLUSH MEMORY
-  CUDA_CHECK(cudaFree(d_F));
-
-  CUDA_CHECK(cudaEventDestroy(start));
-  CUDA_CHECK(cudaEventDestroy(stop));
-}
-
 /// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
 
 int main(void) {
@@ -144,18 +77,18 @@ int main(void) {
   // -- BENCHMARK STATISTICS --
   constexpr size_t num_repeats = 10000;
   constexpr size_t num_warmups = 1000;
-  initMatrix(B, N, d);  // INIT MATRIX
+  FlashLab::initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
 
   // -- BENCHMARK KERNEL RUN --
   std::function<void(cudaStream_t)> launch_kernel 
-    = std::bind(test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
-  benchmark_kernel(launch_kernel, stream, bytes_moved,  cpu_ref_time, num_repeats, num_warmups, true);
+    = std::bind(FlashLab::Reduction::test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
+  FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved,  cpu_ref_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --
   initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // GET CPU RESULT
-  test_rowSumXOR_v2(B, N, d, stream); // GET GPU RESULT
+  FlashLab::Reduction::test_rowSumXOR_v2(B, N, d, stream); // GET GPU RESULT
   CUDA_CHECK(cudaDeviceSynchronize());
   if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");  // VERIFY KERNEL
 

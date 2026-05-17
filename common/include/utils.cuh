@@ -26,18 +26,22 @@
     }                                             \
 } while(0)
 
-double get_time_ms();
+namespace FLashLab {
 
-// array initializer of size d
-void initArray(float *A, const int d);
+    double get_time_ms();
 
-void initMatrix(float *B, const int N, const int d);
+    // array initializer of size d
+    void initArray(float *A, const int d);
 
-void copyArray (float *src, float *dst, const int d);
+    void initMatrix(float *B, const int N, const int d);
 
-void copyMatrix(float *src, float *dst, const int N, const int d);
+    void copyArray (float *src, float *dst, const int d);
 
-// verify element wise
-bool validate(float *gpu_res, float *cpu_res, int size);
+    void copyMatrix(float *src, float *dst, const int N, const int d);
 
-void checkLast(const char* const file, const int line);
+    // verify element wise
+    bool validate(float *gpu_res, float *cpu_res, int size);
+
+    void checkLast(const char* const file, const int line);
+    
+}
