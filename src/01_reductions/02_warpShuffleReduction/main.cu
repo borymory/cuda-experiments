@@ -1,7 +1,6 @@
 #include <cstdio>
 #include "benchmark.cuh"
 #include "kernel.cuh"
-#include "benchmark_common.cuh"
 
 
 // -- CPU FUNCTIONS --
@@ -23,7 +22,7 @@ void cpu_array_reduction (float *src, float *cpu_res, const int d) {
 // to the value inside that pointer and modify that to tmpSum
 
 void cpu_rowSum (float *src, float *cpu_res, const int N, const int d, float *cpu_ref_time) {
-  double cpu_start = get_time_ms();
+  double cpu_start = FlashLab::get_time_ms();
   for (unsigned int i = 0; i < N; ++i) {
 
     float rowResult = 0.0f;
@@ -31,7 +30,7 @@ void cpu_rowSum (float *src, float *cpu_res, const int N, const int d, float *cp
       rowResult += src[i * d + j];
     cpu_res[i] = rowResult;
   }
-  double cpu_stop = get_time_ms();
+  double cpu_stop = FlashLab::get_time_ms();
   *cpu_ref_time = (float)(cpu_stop - cpu_start); // Write to pointer
 }
 
@@ -83,7 +82,7 @@ int main(void) {
   // -- BENCHMARK KERNEL RUN --
   std::function<void(cudaStream_t)> launch_kernel 
     = std::bind(FlashLab::Reduction::test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
-  FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved,  cpu_ref_time, num_repeats, num_warmups, true);
+  FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_ref_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --
   initMatrix(B, N, d);  // INIT MATRIX

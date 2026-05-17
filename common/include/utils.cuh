@@ -11,7 +11,7 @@
 
 #define CEIL_DIV(M, N) (((M) + (N)-1) / (N))
 
-#define CHECK_LAST_CUDA_ERROR() checkLast(__FILE__, __LINE__)
+#define CHECK_LAST_CUDA_ERROR() FlashLab::checkLast(__FILE__, __LINE__)
 
 #define CUDA_CHECK(expr_to_check) do {            \
     cudaError_t result  = expr_to_check;          \
@@ -26,7 +26,7 @@
     }                                             \
 } while(0)
 
-namespace FLashLab {
+namespace FlashLab {
 
     double get_time_ms();
 
@@ -43,5 +43,5 @@ namespace FLashLab {
     bool validate(float *gpu_res, float *cpu_res, int size);
 
     void checkLast(const char* const file, const int line);
-    
+
 }

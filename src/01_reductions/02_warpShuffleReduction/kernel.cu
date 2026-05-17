@@ -154,7 +154,7 @@ namespace FlashLab::Reduction {
         dim3 blockDim(32);
         dim3 gridDim(1);
 
-        vectorReduction_v2<<<gridDim, blockDim>>>(A, d);
+        vectorReduction_v2<<<gridDim, blockDim, 0, stream>>>(A, d);
 
         // Check for launch errors (like passing a CPU pointer!)
         cudaError_t err = cudaGetLastError();
@@ -162,11 +162,11 @@ namespace FlashLab::Reduction {
             printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
-    void test_vectorReductionXOR_v2 (float *A, const int dcudaStream_t stream)) {
+    void test_vectorReductionXOR_v2 (float *A, const int d, cudaStream_t stream) {
         dim3 blockDim(32); // Working strictly with warps
         dim3 gridDim(1);
 
-        vectorReductionXOR_v2<<<gridDim, blockDim>>>(A, d);
+        vectorReductionXOR_v2<<<gridDim, blockDim, 0, stream>>>(A, d);
 
         // Check for launch errors (like passing a CPU pointer!)
         cudaError_t err = cudaGetLastError();
