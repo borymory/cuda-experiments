@@ -86,7 +86,7 @@ int main(void) {
   FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_ref_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --
-  initMatrix(B, N, d);  // INIT MATRIX
+  FlashLab::initMatrix(B, N, d);  // INIT MATRIX
   cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // GET CPU RESULT
   FlashLab::Reduction::test_rowSumXOR_v2(B, N, d, stream); // GET GPU RESULT
   CUDA_CHECK(cudaDeviceSynchronize());
