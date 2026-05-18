@@ -8,8 +8,8 @@
 
 #define FULL_MASK 0xffffffffu // unsigned, safer in bit shifting
 
-void test_vectorReduction_v2 (float *A, const int d);
+namespace FlashLab::Softmax {
 
-void test_vectorReductionXOR_v2 (float *A, const int d);
+    
 
-void test_rowSumXOR_v2 (float *B, const int N, const int d, cudaStream_t stream);
+}
