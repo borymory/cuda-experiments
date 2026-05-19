@@ -60,6 +60,11 @@ namespace FlashLab::Softmax {
         dim3 blockDim = 32;
 
         softmax_v1<<<gridDim, blockDim, 0, stream>>>(input, output, d);
+
+        // Check for launch errors (like passing a CPU pointer!)
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess)
+            printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
 }

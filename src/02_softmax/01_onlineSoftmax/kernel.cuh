@@ -10,6 +10,6 @@
 
 namespace FlashLab::Softmax {
 
-    
+    void launch_softmax_v1 (float *input, float *output, const int d, cudaStream_t stream);
 
 }
