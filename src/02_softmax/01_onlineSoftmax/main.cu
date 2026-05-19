@@ -92,12 +92,12 @@ int main(void) {
   cpu_onlineSoftmax(input, output_cpu, N, d);                     // Store CPU Result
   FlashLab::Softmax::launch_softmax_v1(input, output, d, stream); // Store GPU RESULT
   CUDA_CHECK(cudaDeviceSynchronize());
-  if (validate(output, output_cpu)) std::printf("Succes!\n");     // VERIFY KERNEL
+  if (FlashLab::validate(output, output_cpu, N * d)) std::printf("Succes!\n");     // VERIFY KERNEL
 
   // FREE MEMORY ALLOCATION
   CUDA_CHECK(cudaFree(input));
   CUDA_CHECK(cudaFree(output));
-  std::free(input_cpu);
+  std::free(output_cpu);
 
   // DESTROY STREAM
   CUDA_CHECK(cudaStreamDestroy(stream));
