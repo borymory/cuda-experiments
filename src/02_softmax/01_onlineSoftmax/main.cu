@@ -31,7 +31,8 @@ void cpu_safeSoftmax (float *input, float *output, int N, int d) {
 
 // Pass nullptr if you don't want to time it
 void cpu_onlineSoftmax (float *input, float *output, const int N, const int d, float *time_cpu) {
-  if (time_cpu != nullptr) double cpu_start = FlashLab::get_time_ms();
+  double cpu_start;
+  if (time_cpu != nullptr) cpu_start = FlashLab::get_time_ms();
   for (unsigned int i = 0; i < N; ++i) {
 
     // running normalizer and max
@@ -83,7 +84,7 @@ int main(void) {
   constexpr size_t num_warmups = 1000;
   size_t bytes_moved = static_cast<size_t>(2 * d) * sizeof(float);
   FlashLab::initMatrix(input, N, d);
-  cpu_time = cpu_onlineSoftmax(input, output_cpu, N, d, &cpu_time);
+  cpu_onlineSoftmax(input, output_cpu, N, d, &cpu_time);
 
   // -- BENCHMARK KERNEL RUN --
   std::function<void(cudaStream_t)> launch_kernel 
