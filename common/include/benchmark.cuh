@@ -59,7 +59,7 @@ namespace FlashLab::Benchmark {
 
         // BANDWIDTH CALCULATION
         // Formula: Bytes moved = (Read N * d + write N) * 4 Bytes, time = avg_ms
-        double gb = bytes_moved / 1e9;
+        double gb = static_cast<double>(bytes_moved) / 1e9;
         double bandwidth = gb / (avg_ms / 1000.0);
 
         // PRINT RESULT

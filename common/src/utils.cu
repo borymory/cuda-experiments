@@ -31,10 +31,19 @@ namespace FlashLab {
 
   // generic verifier
   bool validate(float *gpu_res, float *cpu_res, int size) {
-      for (unsigned int i = 0; i < size; i++) {
-          if (std::abs(gpu_res[i] - cpu_res[i]) > 1e-4) return false;
-      }
-      return true;
+    for (unsigned int i = 0; i < size; i++) {
+
+        float diff = std::abs(gpu_res[i] - cpu_res[i]);
+        float relative_err = diff / std::abs(cpu_res[i]);
+        
+        if (relative_err > 1e-5) {
+          std::printf("First error at index %d\n", i);
+          std::printf("GPU: %f\n", gpu_res[i]);
+          std::printf("CPU: %f\n", cpu_res[i]);
+          return false;
+        }
+    }
+    return true;
   }
 
   void checkLast(const char* const file, const int line)

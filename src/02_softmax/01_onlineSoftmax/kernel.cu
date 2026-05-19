@@ -15,39 +15,40 @@ namespace FlashLab::Softmax {
         int tx = threadIdx.x;
         const int ELEMENTS_PER_THREAD = D/32;
 
-        // Thread-level statistics
-        float threadRes[ELEMENTS_PER_THREAD];
+        // Register level statistics and variables
+        float threadRes[ELEMENTS_PER_THREAD];   // used only for storing input values
         float d_i = 0.0f;
         float m_i = -INFINITY;
 
-        // Reduce vector into array and local online softmax
+        // Thread-Level softmax: Reduce vector into registers while doing online softmax
         #pragma unroll
-        for (unsigned int resIdx = 0; resIdx < ELEMENTS_PER_THREAD; resIdx++) {
+        for (unsigned int resIdx = 0; resIdx < ELEMENTS_PER_THREAD; ++resIdx) {
             // Assuming d%32=0
             int dataIdx = tx + resIdx * 32;
-            float threadVal = input[dataIdx];
+            float val = input[dataIdx];
 
-            threadRes[resIdx] = threadVal;      // store in register array
+            threadRes[resIdx] = val;        // store in register array
 
             float m_prev = m_i;
-            m_i = fmaxf(m_prev, threadVal);     // obtain new max
-            d_i *= expf(m_prev - m_i);          // scale sum by new max
-            d_i += expf(threadVal - m_i);       // add running contribution
+            m_i = fmaxf(m_prev, val);       // obtain new max
+            d_i *= expf(m_prev - m_i);      // scale sum by new max
+            d_i += expf(val - m_i);         // add running contribution
         }
 
-        // Warp-Level reduction (Between threads)
+        // Warp-Level softmax: Use __shfl_xor_sync for each thread to exchange statistics and update themselves
         for (unsigned int mirrorIdx = 1; mirrorIdx <= 16; mirrorIdx <<= 1) {
             float m_j = __shfl_xor_sync(FULL_MASK, m_i, mirrorIdx);     // obtain m_j from another thread
             float d_j = __shfl_xor_sync(FULL_MASK, d_i, mirrorIdx);     // obtain d_j from another thread
 
-            float max = fmaxf(m_i, m_j);                        // max = max(m_i, m_j)
-            d_i *= expf(m_i - max);                             // rescale old sum
-            d_i += d_j * expf(m_j - max);                       // add contribution from the new sum
+            float max = fmaxf(m_i, m_j);    // max = max(m_i, m_j)
+            d_i *= expf(m_i - max);         // rescale old sum
+            d_i += d_j * expf(m_j - max);   // add contribution from the new sum
+            m_i = max;                      // update new max
         }
 
-        // calc final values and write back
+        // Calculate final values and write back
         #pragma unroll
-        for (unsigned int resIdx = 0; resIdx < ELEMENTS_PER_THREAD; resIdx++) {
+        for (unsigned int resIdx = 0; resIdx < ELEMENTS_PER_THREAD; ++resIdx) {
             output[tx + (resIdx * 32)] = expf(threadRes[resIdx] - m_i) / d_i;
         }
     }        
@@ -83,3 +84,9 @@ namespace FlashLab::Softmax {
     }
 
 }
+
+// TODO: The switch trick above must be explained in softmax.md, or another .md file such as performance.md. Also include:
+//       It is important to disscuss templates effect on compile time and runtime. What is the difference between
+//       local arrays stored adress when accessed with pragma unroll + template or by index? Local mem vs Registers.
+//       Why switch case is implemented to adress the problem above? "the perfect blocksize prevents spilling!"
+//       "If the compiler can prove that the index is a constant at compile-time, it will put the array in Registers."

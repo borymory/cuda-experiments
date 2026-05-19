@@ -40,7 +40,7 @@ After we find the sum and maximum value, we can begin to write the final values 
 
 In online softmax we combine the calculation of m_j and d_j inside a single for loop. Notice that d_j is calculated by d_{j-1} and the current element. However, now instead of subtracting m_N, we subtract the current (running) maximum, m_j, from our element. This means that we have subtracted m_{j-1} when calculating d_{j-1}. To obtain d_j, we have to rescale d_{j-1} by $\mathrm{e^{m_{j-1}-m_j}}$ and add our current element contribution $\mathrm{e^{x_j-m_j}}$.
 
-This recursive expression can be expressed in GPU code as below:
+This recursive expression can be expressed in CPU code as below:
 
 <div class="pseudo-code">
 
