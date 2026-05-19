@@ -29,8 +29,9 @@ void cpu_safeSoftmax (float *input, float *output, int N, int d) {
   // 4 memory access per vector element. We have N*d element. Total of 4*N*d many mem access. 
 }
 
-void cpu_onlineSoftmax (float *input, float *output, const int N, const int d, bool time_cpu) {
-  double cpu_start = get_time_ms;
+// Pass nullptr if you don't want to time it
+void cpu_onlineSoftmax (float *input, float *output, const int N, const int d, float *time_cpu) {
+  if (time_cpu != nullptr) double cpu_start = FlashLab::get_time_ms();
   for (unsigned int i = 0; i < N; ++i) {
 
     // running normalizer and max
@@ -53,8 +54,7 @@ void cpu_onlineSoftmax (float *input, float *output, const int N, const int d, b
       output[i * d + k] = expf(input[i * d + k] - m_new) / norm;
     }
   }
-  double cpu_stop = get_time_ms;
-  if (time_cpu) return (float)(cpu_stop - cpu_start);
+  if (time_cpu != nullptr) *time_cpu = static_cast<float>(FlashLab::get_time_ms() - cpu_start);
 }
 
 // -- VERIFY FUNCTIONS --
@@ -83,19 +83,19 @@ int main(void) {
   constexpr size_t num_warmups = 1000;
   size_t bytes_moved = static_cast<size_t>(2 * d) * sizeof(float);
   FlashLab::initMatrix(input, N, d);
-  cpu_time = cpu_onlineSoftmax(input, output_cpu, N, d, true);
+  cpu_time = cpu_onlineSoftmax(input, output_cpu, N, d, &cpu_time);
 
   // -- BENCHMARK KERNEL RUN --
   std::function<void(cudaStream_t)> launch_kernel 
     = std::bind(FlashLab::Softmax::launch_softmax_v1, input, output, d, std::placeholders::_1);
-  FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_ref_time, num_repeats, num_warmups, true);
+  FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --
-  FlashLab::initMatrix(input, N, d);                              // INIT MATRIX
-  cpu_onlineSoftmax(input, output_cpu, N, d, false);              // Store CPU Result
+  FlashLab::initMatrix(input, N, d);                              // Init Matrix
+  cpu_onlineSoftmax(input, output_cpu, N, d, nullptr);            // Store CPU Result
   FlashLab::Softmax::launch_softmax_v1(input, output, d, stream); // Store GPU RESULT
   CUDA_CHECK(cudaDeviceSynchronize());
-  if (FlashLab::validate(output, output_cpu, N * d)) std::printf("Succes!\n");     // VERIFY KERNEL
+  if (FlashLab::validate(output, output_cpu, N * d)) std::printf("Succes!\n");  // VERIFY KERNEL
 
   // FREE MEMORY ALLOCATION
   CUDA_CHECK(cudaFree(input));
