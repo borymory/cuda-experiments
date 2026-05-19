@@ -30,8 +30,9 @@ void cpu_safeSoftmax (float *input, float *output, int N, int d) {
 }
 
 void cpu_onlineSoftmax (float *input, float *output, const int N, const int d) {
+  for (unsigned int i = 0; i < N; ++i) {
 
-  // running normalizer and max
+    // running normalizer and max
     float m_new = -INFINITY;
     float m_prev = -INFINITY;
     float norm = 0.0f;
@@ -50,52 +51,53 @@ void cpu_onlineSoftmax (float *input, float *output, const int N, const int d) {
     for (unsigned int k = 0; k < d; ++k) {
       output[i * d + k] = expf(input[i * d + k] - m_new) / norm;
     }
+  }
 
 }
 
 // -- VERIFY FUNCTIONS --
-
-
-/// IF ELEMENT VISE VERIFICATION NEEDED, USE THE ONE GIVEN IN UTILS.CUH
+// softmax can be verified element wise. Use validate func given in ./common/utils.cu
 
 int main(void) {
   cudaStream_t stream;
   
-  float *B;
-  float *B_cpu;
-  float cpu_ref_time;
+  float *input;
+  float *output;
+  float *output_cpu;
 
-  const int N = 16384;
-  const int d = 1024;
+  const int N = 1;
+  const int d = 512;
 
-  size_t bytes_moved = (double)(N * d + N) * sizeof(float);
+  //size_t bytes_moved = (double)(N * d + N) * sizeof(float);
 
   // USE UNIFIED MEMORY - INITIALIATONS
-  CUDA_CHECK(cudaMallocManaged(&B, N * d * sizeof(float)));
-  B_cpu = (float*)std::malloc(N * sizeof(float));
+  CUDA_CHECK(cudaMallocManaged(&input, N * d * sizeof(float)));
+  CUDA_CHECK(cudaMallocManaged(&output, N * d * sizeof(float)));
+  output_cpu = (float*)std::malloc(N * d * sizeof(float));
   CUDA_CHECK(cudaStreamCreate(&stream));
 
   // -- BENCHMARK STATISTICS --
-  constexpr size_t num_repeats = 10000;
-  constexpr size_t num_warmups = 1000;
-  FlashLab::initMatrix(B, N, d);  // INIT MATRIX
-  cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
+  //constexpr size_t num_repeats = 10000;
+  //constexpr size_t num_warmups = 1000;
+  //FlashLab::initMatrix(B, N, d);  // INIT MATRIX
+  //cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // WRITE GET CPU TIME
 
   // -- BENCHMARK KERNEL RUN --
-  std::function<void(cudaStream_t)> launch_kernel 
-    = std::bind(FlashLab::Reduction::test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
-  FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_ref_time, num_repeats, num_warmups, true);
+  //std::function<void(cudaStream_t)> launch_kernel 
+  //  = std::bind(FlashLab::Reduction::test_rowSumXOR_v2, B, N, d, std::placeholders::_1);
+  //FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_ref_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --
-  FlashLab::initMatrix(B, N, d);  // INIT MATRIX
-  cpu_rowSum(B, B_cpu, N, d, &cpu_ref_time); // GET CPU RESULT
-  FlashLab::Reduction::test_rowSumXOR_v2(B, N, d, stream); // GET GPU RESULT
+  FlashLab::initMatrix(input, N, d);                              // INIT MATRIX
+  cpu_onlineSoftmax(input, output_cpu, N, d);                     // Store CPU Result
+  FlashLab::Softmax::launch_softmax_v1(input, output, d, stream); // Store GPU RESULT
   CUDA_CHECK(cudaDeviceSynchronize());
-  if (cpu_rowSum_verify(B, B_cpu, N, d)) std::printf("Succes!\n");  // VERIFY KERNEL
+  if (validate(output, output_cpu)) std::printf("Succes!\n");     // VERIFY KERNEL
 
   // FREE MEMORY ALLOCATION
-  CUDA_CHECK(cudaFree(B));
-  std::free(B_cpu);
+  CUDA_CHECK(cudaFree(input));
+  CUDA_CHECK(cudaFree(output));
+  std::free(input_cpu);
 
   // DESTROY STREAM
   CUDA_CHECK(cudaStreamDestroy(stream));
