@@ -136,30 +136,6 @@ namespace FlashLab::Softmax {
             printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
-    void launch_softmax_v2 (std::string type, const int BN, void *input, void *output, const int N, const int d, cudaStream_t stream) {
-        if (type == "float")
-            dispatch_bn<float>(BN, (float*) input, (float*)output, N, d, stream);
-        else if (type == "double")
-            dispatch_bn<double>(BN, (double*) input, (double*)output, N, d, stream);
-        else
-            std::printf("Unsupported type: %s\n", type.c_str());
-
-    }
-
-    template<typename T>
-    dispatch_bn (const int BN, T *input, T *output, const int N, const int d, cudaStream_t stream) {
-        switch(BN) {
-            case 8:
-                dispatch_d<T, 8>(input, output, N, d, stream); break;
-            case 16:
-                dispatch_d<T, 8>(input, output, N, d, stream); break;
-            case 32:
-                dispatch_d<T, 8>(input, output, N, d, stream); break;
-            default:
-                std::printf("Unsupported value BN=%d. Check switch in dispatch_bn", BN);
-        }
-    }
-
     template<typename T, const int BN>
     dispatch_d (T *input, T *output, const int N, const int d, cudaStream_t stream) {
         dim3 gridDim(CEIL_DIV(N, BN));
@@ -184,6 +160,30 @@ namespace FlashLab::Softmax {
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess)
             printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
+    }
+
+    template<typename T>
+    dispatch_bn (const int BN, T *input, T *output, const int N, const int d, cudaStream_t stream) {
+        switch(BN) {
+            case 8:
+                dispatch_d<T, 8>(input, output, N, d, stream); break;
+            case 16:
+                dispatch_d<T, 8>(input, output, N, d, stream); break;
+            case 32:
+                dispatch_d<T, 8>(input, output, N, d, stream); break;
+            default:
+                std::printf("Unsupported value BN=%d. Check switch in dispatch_bn", BN);
+        }
+    }
+
+    void launch_softmax_v2 (std::string type, const int BN, void *input, void *output, const int N, const int d, cudaStream_t stream) {
+        if (type == "float")
+            dispatch_bn<float>(BN, (float*) input, (float*)output, N, d, stream);
+        else if (type == "double")
+            dispatch_bn<double>(BN, (double*) input, (double*)output, N, d, stream);
+        else
+            std::printf("Unsupported type: %s\n", type.c_str());
+        
     }
 
 }
