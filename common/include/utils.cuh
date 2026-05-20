@@ -31,7 +31,6 @@ namespace FlashLab {
 
     double get_time_ms();
 
-    // array initializer of size d
     void initArray(float *A, const int d);
 
     void initMatrix(float *B, const int N, const int d);
@@ -40,9 +39,20 @@ namespace FlashLab {
 
     void copyMatrix(float *src, float *dst, const int N, const int d);
 
-    // verify element wise
     bool validate(float *gpu_res, float *cpu_res, int size);
 
     void checkLast(const char* const file, const int line);
+
+    //
+    // Overload Functions
+    //
+
+    // FP32 (float)
+    __device__ __forceinline__ float gpu_exp(float x) { return expf(x); }
+    __device__ __forceinline__ float gpu_max(float x, float y) { return fmaxf(x, y); }
+
+    // FP64 (double)
+    __device__ __forceinline__ double gpu_exp(double x) { return exp(x); }
+    __device__ __forceinline__ double gpu_max(double x, double y) { return fmax(x, y); }
 
 }
