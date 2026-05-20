@@ -67,3 +67,7 @@ Experimented with std::function and std::bind to create a more Type-Agnostic Ben
 ### **LOG 6**
 
 Started working on Online Softmax and the flashAttn math. The motivation behind FlashAttn becomes much more easier when you try to map Matmul -> Softmax -> Matmul into block-rows of the output matrix O. I noticed that the online softmax trick is used twice, which isn't stated clearly in the paper itself: 1) when calculating P_{ij} 2) when calculating the j-th block of O_i, we do an online-softmax-like update to the old O_i, of block j-1. Anyhow, most efforts right now will be going to keeping softmax folder clean. I actually want to implement a basic flashattn first and then create anoter one that can handle different data types.
+
+### **LOG 7**
+
+Implemented a single row softmax kernel using warp-level primitives. Transforming that logic onto a softmax kernel that works with matrices is only a matter of proper indexology, of which I plan to do tomorrow. Next is possibly flashAttn. I need to work around the places where softmax updates will be made in flashAttn algorithm. Included static_cast<> in main.cu for safe casting.
