@@ -94,7 +94,7 @@ int main(void) {
   // -- VERIFY KERNEL RUN --
   FlashLab::initMatrix(input, N, d);                              // Init Matrix
   cpu_onlineSoftmax(input, output_cpu, N, d, nullptr);            // Store CPU Result
-  FlashLab::Softmax::launch_softmax_v1(input, output, d, stream); // Store GPU Result
+  FlashLab::Softmax::launch_softmax_v2(input, output, d, stream); // Store GPU Result
   CUDA_CHECK(cudaDeviceSynchronize());
   if (FlashLab::validate(output, output_cpu, N * d)) std::printf("Succes!\n");  // VERIFY KERNEL
 
