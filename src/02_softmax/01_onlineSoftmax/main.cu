@@ -89,13 +89,13 @@ int main(void) {
   FlashLab::initMatrix(input, N, d);                              // Init Matrix
   cpu_onlineSoftmax(input, output_cpu, N, d, &cpu_time);          // Store CPU Time
   std::function<void(cudaStream_t)> launch_kernel
-    = std::bind(FlashLab::Softmax::launch_softmax_v2<float, BN>, input, output, N, d, std::placeholders::_1);
+    = std::bind(FlashLab::Softmax::type_dispatch_softmax_v2, "float", BN, (void*)input, (void*)output, N, d, std::placeholders::_1);
   FlashLab::Benchmark::benchmark_kernel(launch_kernel, stream, bytes_moved, cpu_time, num_repeats, num_warmups, true);
 
   // -- VERIFY KERNEL RUN --
-  FlashLab::initMatrix(input, N, d);                              // Init Matrix
-  cpu_onlineSoftmax(input, output_cpu, N, d, nullptr);            // Store CPU Result
-  FlashLab::Softmax::launch_softmax_v2<float, BN>(input, output, N, d, stream); // Store GPU Result
+  FlashLab::initMatrix(input, N, d);                                                                    // Init Matrix
+  cpu_onlineSoftmax(input, output_cpu, N, d, nullptr);                                                  // Store CPU Result
+  FlashLab::Softmax::type_dispatch_softmax_v2("float", BN, (void*)input, (void*)output, N, d, stream);  // Store GPU Result
   CUDA_CHECK(cudaDeviceSynchronize());
   if (FlashLab::validate(output, output_cpu, N * d)) std::printf("Succes!\n");  // VERIFY KERNEL
 

@@ -136,6 +136,40 @@ namespace FlashLab::Softmax {
             printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
+    void type_dispatch_softmax_v2(std::string type, const int BN, void *input, void *output, const int N, const int d, cudaStream_t stream) {
+        if (type == "float")
+            launch_softmax_v2<float, BN>((float*)input, (float*)output, N, d, stream);
+        else if (type == "double")
+            launch_softmax_v2<double, BN>((double*)input, (double*)output, N, d, stream);
+    }
+
+    template<typename T, const int BN>
+    void launch_softmax_v2 (T *input, T *output, const int N, const int d, cudaStream_t stream) {
+        const int BN = 8;
+        dim3 gridDim(CEIL_DIV(N, BN));
+        dim3 blockDim(BN * 32);
+        
+        switch(d) {
+            case 64:
+                softmax_v2<T, 64, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+            case 128:
+                softmax_v2<T, 128, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+            case 256:
+                softmax_v2<T, 256, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+            case 512:
+                softmax_v2<T, 512, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+            case 1024:
+                softmax_v2<T, 1024, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+            default:
+                std::printf("Unsupported dimension d=%d. Add it to the switch!", d);
+        }
+
+        // Check for launch errors (like passing a CPU pointer!)
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess)
+            printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
+    }
+
 }
 
 // TODO: The switch trick above must be explained in softmax.md, or another .md file such as performance.md. Also include:
