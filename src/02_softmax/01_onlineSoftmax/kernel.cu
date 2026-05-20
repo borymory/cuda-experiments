@@ -136,15 +136,8 @@ namespace FlashLab::Softmax {
             printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
-    void type_dispatch_softmax_v2(std::string type, const int BN, void *input, void *output, const int N, const int d, cudaStream_t stream) {
-        if (type == "float")
-            launch_softmax_v2<float, BN>((float*)input, (float*)output, N, d, stream);
-        else if (type == "double")
-            launch_softmax_v2<double, BN>((double*)input, (double*)output, N, d, stream);
-    }
-
-    template<typename T, const int BN>
-    void launch_softmax_v2 (T *input, T *output, const int N, const int d, cudaStream_t stream) {
+    void launch_softmax_v2 (float *input, float *output, const int N, const int d, cudaStream_t stream) {
+        typename T = float;
         const int BN = 8;
         dim3 gridDim(CEIL_DIV(N, BN));
         dim3 blockDim(BN * 32);
