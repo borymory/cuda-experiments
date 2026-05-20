@@ -136,22 +136,46 @@ namespace FlashLab::Softmax {
             printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
-    void launch_softmax_v2 (float *input, float *output, const int N, const int d, cudaStream_t stream) {
-        const int BN = 8;
+    void launch_softmax_v2 (std::string type, const int BN, void *input, void *output, const int N, const int d, cudaStream_t stream) {
+        if (type == "float")
+            dispatch_bn<float>(BN, (float*) input, (float*)output, N, d, stream);
+        else if (type == "double")
+            dispatch_bn<double>(BN, (double*) input, (double*)output, N, d, stream);
+        else
+            std::printf("Unsupported type: %s\n", type.c_str());
+
+    }
+
+    template<typename T>
+    dispatch_bn (const int BN, T *input, T *output, const int N, const int d, cudaStream_t stream) {
+        switch(BN) {
+            case 8:
+                dispatch_d<T, 8>(input, output, N, d, stream); break;
+            case 16:
+                dispatch_d<T, 8>(input, output, N, d, stream); break;
+            case 32:
+                dispatch_d<T, 8>(input, output, N, d, stream); break;
+            default:
+                std::printf("Unsupported value BN=%d. Check switch in dispatch_bn", BN);
+        }
+    }
+
+    template<typename T, const int BN>
+    dispatch_d (T *input, T *output, const int N, const int d, cudaStream_t stream) {
         dim3 gridDim(CEIL_DIV(N, BN));
         dim3 blockDim(BN * 32);
         
         switch(d) {
             case 64:
-                softmax_v2<float, 64, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<T, 64, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 128:
-                softmax_v2<float, 128, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<T, 128, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 256:
-                softmax_v2<float, 256, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<T, 256, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 512:
-                softmax_v2<float, 512, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<T, 512, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 1024:
-                softmax_v2<float, 1024, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<T, 1024, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             default:
                 std::printf("Unsupported dimension d=%d. Add it to the switch!", d);
         }
