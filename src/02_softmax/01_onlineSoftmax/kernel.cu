@@ -143,7 +143,7 @@ namespace FlashLab::Softmax {
         
         switch(d) {
             case 128:
-                softmax_v2<128, BM><<<gridDim, blockDim, 0, stream>>>(input, output, N, d);
+                softmax_v2<128, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d);
                 break;
             case 256:
                 softmax_v2<256, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d);
