@@ -137,22 +137,21 @@ namespace FlashLab::Softmax {
     }
 
     void launch_softmax_v2 (float *input, float *output, const int N, const int d, cudaStream_t stream) {
-        typename T = float;
         const int BN = 8;
         dim3 gridDim(CEIL_DIV(N, BN));
         dim3 blockDim(BN * 32);
         
         switch(d) {
             case 64:
-                softmax_v2<T, 64, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<float, 64, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 128:
-                softmax_v2<T, 128, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<float, 128, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 256:
-                softmax_v2<T, 256, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<float, 256, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 512:
-                softmax_v2<T, 512, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<float, 512, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             case 1024:
-                softmax_v2<T, 1024, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
+                softmax_v2<float, 1024, BN><<<gridDim, blockDim, 0, stream>>>(input, output, N, d); break;
             default:
                 std::printf("Unsupported dimension d=%d. Add it to the switch!", d);
         }
