@@ -137,7 +137,7 @@ namespace FlashLab::Softmax {
     }
 
     template<typename T, const int BN>
-    dispatch_d (T *input, T *output, const int N, const int d, cudaStream_t stream) {
+    void dispatch_d (T *input, T *output, const int N, const int d, cudaStream_t stream) {
         dim3 gridDim(CEIL_DIV(N, BN));
         dim3 blockDim(BN * 32);
         
@@ -163,14 +163,14 @@ namespace FlashLab::Softmax {
     }
 
     template<typename T>
-    dispatch_bn (const int BN, T *input, T *output, const int N, const int d, cudaStream_t stream) {
+    void dispatch_bn (const int BN, T *input, T *output, const int N, const int d, cudaStream_t stream) {
         switch(BN) {
             case 8:
                 dispatch_d<T, 8>(input, output, N, d, stream); break;
             case 16:
-                dispatch_d<T, 8>(input, output, N, d, stream); break;
+                dispatch_d<T, 16>(input, output, N, d, stream); break;
             case 32:
-                dispatch_d<T, 8>(input, output, N, d, stream); break;
+                dispatch_d<T, 32>(input, output, N, d, stream); break;
             default:
                 std::printf("Unsupported value BN=%d. Check switch in dispatch_bn", BN);
         }

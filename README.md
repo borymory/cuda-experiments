@@ -17,7 +17,8 @@ Kernels implemented so far:
 - [x] Reduction Algorithm: Warp Shuffling (xor and down)
 - [x] rowSum using __shfl_xor_sync()
 - [x] rowMax using __shfl_xor_sync()
-- [ ] Online Softmax
+- [x] Online Softmax
+- [ ] FlashAttention
 
 ## Rules
 
@@ -71,3 +72,11 @@ Started working on Online Softmax and the flashAttn math. The motivation behind 
 ### **LOG 7**
 
 Implemented a single row softmax kernel using warp-level primitives. Transforming that logic onto a softmax kernel that works with matrices is only a matter of proper indexology, of which I plan to do tomorrow. Next is possibly flashAttn. I need to work around the places where softmax updates will be made in flashAttn algorithm. Included static_cast<> in main.cu for safe casting.
+
+### **LOG 8**
+
+Implemented matrix online softmax kernel. Experimented with mixed precision and used forceinline for function overloading in softmax kernel. I want to keep the kernels type-agnostic and I want to make them suitable for common use. However that will take time and I am sensitive over its complexity. I'd rather have a mediocre efficiency kernel than a super fast but highly complex code, for now. Maybe in the future I will grab on some hardware and test the other case. But for nowi readable and maintainable code is my highest priority. I will implement flash attention with that goal in mind.
+
+## **LOG 9**
+
+Sketched out flash attention kernel. I worked around the math and I am still stuck between the hardest design choice: registers or shared memory when storing the intermediate chunk S_ij. I initially though registers though I didn't want to directly go through the elements per thread calculation again and again without a naive flashattn implementation so I decided to settle with shared memory and use appropriate chunk sizes Bc and Br. I think the most hard part is not being able to test the intermediate code. Maybe there is a way that I am not aware of yet but it seems and feels like I am writing kernels in the dark for an hour or something before I am able to test it. The worse part is to run the kernel, see it giving inaccurate answers, turning back to code and sadly seeing that you have to proof check the math, not debug it like seperating part of the codes and running them. The data size is big, the assumptions are getting complexer. I think solidifying each part of the basics is a really good way to really minimize simple but hard to notice mistakes ruining the kernel, like uncoalesced mem accesses/out-of-bound reaches/wrong matmul indexology (I think I currently suffer from that while implementing flashAttn rn). Anyhow, we will see how it sticks in time. :)
