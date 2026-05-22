@@ -29,6 +29,10 @@ namespace FlashLab {
     }
   }
 
+  void copy(float *src, float *dst, const int size) {
+    for (unsigned int i = 0; i < size; ++i) dst[i] = src[i];
+  }
+
   // generic verifier
   bool validate(float *gpu_res, float *cpu_res, int size) {
     for (unsigned int i = 0; i < size; i++) {

@@ -12,8 +12,11 @@ namespace FlashLab::flashAttn::naive {
     template<const int Br, const int Bc, const int D>
     __global__ void flashAttn_fwd_v1 (float *K, float *Q, float *V, float *O, const int N, const int d) {
         // We launch Br * 32 threads. SMEM loading is tiled
+        // We launch CEIL_DIV(N, Br) many blocks
         int rowIdx = blockIdx.x * Br;
-        Q += rowIdx * d;    // advance each block to q and o blocks
+
+        // advance each block to q and o blocks
+        Q += rowIdx * d;
         O += rowIdx * d;
 
         int tx_i = threadIdx.x % 32;

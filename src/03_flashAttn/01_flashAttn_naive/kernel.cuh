@@ -11,6 +11,6 @@
 
 namespace FlashLab::flashAttn::naive {
 
-    
+    void launch_flashAttn_fwd_v1(float *K, float *Q, float *V, float *O, const int N, const int d, cudaStream_t stream);
 
 }
