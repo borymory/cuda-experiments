@@ -46,7 +46,7 @@ void cpu_matmul (float *A, float *B, float *output, const int N, const int d, co
   }
 }
 
-void cpu_transpose (float *input, const int N) {
+void cpu_transpose (float *input, const int N, const int d) {
   for (unsigned int i = 0; i < N; ++i) {
     for (unsigned int j = 0; j < i; ++j) {
       float placeholder;
@@ -58,7 +58,7 @@ void cpu_transpose (float *input, const int N) {
 }
 
 void cpu_attention (float *K, float *Q, float *V, float *S, float *P, float *O, const int N, const int d) {
-  cpu_transpose(K, N);
+  cpu_transpose(K, N, d);
   cpu_matmul(Q, K, S, N, d, d);
   cpu_onlineSoftmax(S, P, N, N, nullptr);
   cpu_matmul(P, V, O, N, d, N);
@@ -82,8 +82,8 @@ int main(void) {
   float *O_cpu;
   float cpu_time; // not used rn.
 
-  const int N = 16384;
-  const int d = 128;
+  const int N = 1024;
+  const int d = 64;
 
 
   // USE UNIFIED MEMORY - INITIALIATONS
@@ -118,7 +118,7 @@ int main(void) {
   FlashLab::copyMatrix(K, K_cpu, N, d);
   FlashLab::copyMatrix(Q, Q_cpu, N, d);
   FlashLab::copyMatrix(V, V_cpu, N, d);
-  cpu_attention(K_cpu, Q_cpu, V_cpu, S_cpu, P_cpu, O_cpu);
+  cpu_attention(K_cpu, Q_cpu, V_cpu, S_cpu, P_cpu, O_cpu, N, d);
   FlashLab::flashAttn::naive::launch_flashAttn_fwd_v1(K, Q, V, O, N, d, stream);
   CUDA_CHECK(cudaDeviceSynchronize());
   if (FlashLab::validate(O, O_cpu, N * d)) std::printf("Succes!\n");  // VERIFY KERNEL

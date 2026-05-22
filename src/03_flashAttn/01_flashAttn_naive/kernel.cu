@@ -25,14 +25,14 @@ namespace FlashLab::flashAttn::naive {
         int tx_j = (threadIdx.x) % (32 * Br / Bc);
         int ty_j = (threadIdx.x) / (32 * Br / Bc);
 
-        __shared__ float Q_i [Br * d];
-        __shared__ float K_j [Bc * d];
-        __shared__ float V_j [Bc * d];
+        __shared__ float Q_i [Br * D];
+        __shared__ float K_j [Bc * D];
+        __shared__ float V_j [Bc * D];
         __shared__ float S_ij [Br * Bc];
 
         // threads' O elements responsibility
         const int ELEMENTS_PER_THREAD = D/32;
-        float O_reg[ELEMENETS_PER_THREAD] = 0.0f;
+        float O_reg[ELEMENTS_PER_THREAD] = {0.0f};
 
         // prev block statistics
         float m_old = -INFINITY;
@@ -40,29 +40,29 @@ namespace FlashLab::flashAttn::naive {
 
         for (unsigned int offset = 0; offset < d; offset += 32) {
             // assumption: d%32=0
-            Q_i[ty_i * d + (tx_i + offset)] = Q[ty_i * d + (tx_i + offset)];
+            Q_i[ty_i * D + (tx_i + offset)] = Q[ty_i * D + (tx_i + offset)];
         }
-        __synchronize();
+        __syncthreads();
 
         // start for loop for K_j V_j loading
         for (unsigned int outerLoop = 0; outerLoop < N; outerLoop += Bc) {
 
             for (unsigned int offset = 0; offset < d; offset += (Br * 32) / Bc) {
                 // assumption: d%( (Br * 32) / Bc )=0
-                K_j[ty_j * d + (tx_j + offset)] = K[ty_j * d + (tx_j + offset)];
-                V_j[ty_j * d + (tx_j + offset)] = V[ty_j * d + (tx_j + offset)];
+                K_j[ty_j * D + (tx_j + offset)] = K[ty_j * D + (tx_j + offset)];
+                V_j[ty_j * D + (tx_j + offset)] = V[ty_j * D + (tx_j + offset)];
             }
-            __synchronize();
+            __syncthreads();
 
             // calculate S=Q@K^T.
             for(unsigned int offset = 0; offset < Bc; offset += 32) {
                 // assumption: Bc%32 = 0, Bc >> 32
                 float sum = 0.0f;
                 for (unsigned int dotIdx = 0; dotIdx < d; ++dotIdx)
-                    sum += Q_i[ty_i * d + dotIdx] * K_j[(tx_i + offset) * d + dotIdx];  // possible bank conflict at K_j accesses
+                    sum += Q_i[ty_i * D + dotIdx] * K_j[(tx_i + offset) * D + dotIdx];  // possible bank conflict at K_j accesses
                 S_ij[ty_i * Bc + (tx_i + offset)] = sum;
             }
-            __synchronize();
+            __syncthreads();
 
             // thread-level softmax: reduce S_ij into register for online softmax
             float d_i = 0.0f;
@@ -94,9 +94,9 @@ namespace FlashLab::flashAttn::naive {
                 // assumption: Bc%32 = 0, Bc >> 32
                 int dataIdx = ty_i * Bc + (tx_i + offset);
                 float val = S_ij[dataIdx];
-                S_ij[dataIdx] = expf(val - m_i) / d_i;
+                S_ij[dataIdx] = expf(val - m_i);
             }
-            __synchronize();
+            __syncthreads();
 
             // now, m_i and d_i are block max and norms
 
@@ -106,14 +106,16 @@ namespace FlashLab::flashAttn::naive {
             
             // matmul PV, load into O
             #pragma unroll
-            for (unsigned int i = 0; i < ELEMENETS_PER_THREAD; ++i) {
+            for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
                 // assumption: Bc%32=0, Bc >> 32
-                float sum = 0.0f;
+                float pv_sum = 0.0f;
                 for (unsigned int dotIdx = 0; dotIdx < Bc; ++dotIdx) {
-                    sum = S_ij[ty * d + dotIdx] * V_j[dotIdx * d + (tx + (32 * i))];
+                    float p_val = S_ij[ty_i * Bc + dotIdx];
+                    float v_val = V_j[dotIdx * D (tx_i + (32 * i))];
+                    pv_sum += p_val * v_val;
                 }
-                O_reg[i] *= d_old * (1/d_new) * expf(m_old - m_new) 
-                O_reg[i] += sum * expf(m_i - m_new);
+                O_reg[i] *= d_old * (1/d_new) * expf(m_old - m_new);
+                O_reg[i] += (1/d_new) * pv_sum * expf(m_i - m_new);
             }
 
             // save new globals as prev blocks
@@ -131,7 +133,7 @@ namespace FlashLab::flashAttn::naive {
         #pragma unroll
         for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
             // assumption: d%32=0, d >> 32
-            O[ty * d + (tx + 32 * i)] = O_reg[i];
+            O[ty_i * D + (tx_i + 32 * i)] = O_reg[i];
         }
 
     }
@@ -141,22 +143,16 @@ namespace FlashLab::flashAttn::naive {
     // KERNEL WRAPPERS
     //
     void launch_flashAttn_fwd_v1(float *K, float *Q, float *V, float *O, const int N, const int d, cudaStream_t stream) {
-        const int Br = 16;
-        const int Bc = 128;
+        const int Br = 32;
+        const int Bc = 32;
         dim3 gridDim(CEIL_DIV(N, Br));
         dim3 blockDim(32 * Br);
         
         switch(d) {
+            case(64):
+                flashAttn_fwd_v1<Br, Bc, 64><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
             case(128):
                 flashAttn_fwd_v1<Br, Bc, 128><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
-            case(256):
-                flashAttn_fwd_v1<Br, Bc, 256><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
-            case(512):
-                flashAttn_fwd_v1<Br, Bc, 512><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
-            case(1024):
-                flashAttn_fwd_v1<Br, Bc, 1024><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
-            case(2048):
-                flashAttn_fwd_v1<Br, Bc, 2048><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
         }
     }
 
