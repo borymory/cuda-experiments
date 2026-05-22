@@ -82,8 +82,8 @@ int main(void) {
   float *O_cpu;
   float cpu_time; // not used rn.
 
-  const int N = 1024;
-  const int d = 64;
+  const int N = 32;
+  const int d = 32;
 
 
   // USE UNIFIED MEMORY - INITIALIATONS

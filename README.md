@@ -20,6 +20,24 @@ Kernels implemented so far:
 - [x] Online Softmax
 - [ ] FlashAttention
 
+## Annoying launch commands
+
+```
+git clone -b research/online-softmax https://github.com/borymory/cuda-experiments.git
+```
+
+```
+cd cuda-experiments
+```
+
+```
+chmod +x scripts/build.sh
+```
+
+```
+./scripts/build.sh src/03_flashAttn/01_flashAttn_naive
+```
+
 ## Rules
 
 - [x] Full `CUDA_CHECK` error handling on every API call.

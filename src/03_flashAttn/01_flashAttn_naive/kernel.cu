@@ -111,7 +111,7 @@ namespace FlashLab::flashAttn::naive {
                 float pv_sum = 0.0f;
                 for (unsigned int dotIdx = 0; dotIdx < Bc; ++dotIdx) {
                     float p_val = S_ij[ty_i * Bc + dotIdx];
-                    float v_val = V_j[dotIdx * D (tx_i + (32 * i))];
+                    float v_val = V_j[dotIdx * D + (tx_i + (32 * i))];
                     pv_sum += p_val * v_val;
                 }
                 O_reg[i] *= d_old * (1/d_new) * expf(m_old - m_new);
@@ -151,8 +151,6 @@ namespace FlashLab::flashAttn::naive {
         switch(d) {
             case(64):
                 flashAttn_fwd_v1<Br, Bc, 64><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
-            case(128):
-                flashAttn_fwd_v1<Br, Bc, 128><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
         }
     }
 
