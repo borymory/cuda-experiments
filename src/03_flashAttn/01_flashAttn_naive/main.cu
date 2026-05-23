@@ -40,9 +40,9 @@ void cpu_matmul (float *A, float *B, float *output, const int row_A, const int c
 
       float sum = 0.0f;
       for (unsigned int k = 0; k < common_dim; ++k) {
-        sum += A[row * d + k] * B[k * d + col];
+        sum += A[row * common_dim + k] * B[k * col_B + col];
       }
-      output[row * d + col] = sum;
+      output[row * col_B + col] = sum;
     }
   }
 }
@@ -54,9 +54,9 @@ void cpu_matmul_withoutTranspose (float *A, float *B, float *output, const int r
 
       float sum = 0.0f;
       for (unsigned int k = 0; k < common_dim; ++k) {
-        sum += A[row * d + k] * B[col * d + k];
+        sum += A[row * common_dim + k] * B[col * common_dim + k];
       }
-      output[row * d + col] = sum;
+      output[row * common_dim + col] = sum;
     }
   }
 }
@@ -133,7 +133,6 @@ int main(void) {
   std::free(Q_cpu);
   std::free(V_cpu);
   std::free(S_cpu);
-  std::free(P_cpu);
   std::free(O_cpu);
 
   // DESTROY STREAM
