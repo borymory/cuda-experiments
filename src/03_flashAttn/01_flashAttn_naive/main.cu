@@ -33,9 +33,10 @@ void cpu_onlineSoftmax (float *input, float *output, const int N, const int d, f
   if (time_cpu != nullptr) *time_cpu = static_cast<float>(FlashLab::get_time_ms() - cpu_start);
 }
 
-void cpu_matmul (float *A, float *B, float *output, const int N, const int d, const int common_dim) {
-  for (unsigned int row = 0; row < N; ++row) {
-    for (unsigned int col = 0; col < d; ++col) {
+// Q is (N, d), K^T is (d, N), P is (N, N), V is (N, d)
+void cpu_matmul (float *A, float *B, float *output, const int row_A, const int col_B, const int common_dim) {
+  for (unsigned int row = 0; row < row_A; ++row) {
+    for (unsigned int col = 0; col < col_B; ++col) {
 
       float sum = 0.0f;
       for (unsigned int k = 0; k < common_dim; ++k) {
@@ -46,22 +47,24 @@ void cpu_matmul (float *A, float *B, float *output, const int N, const int d, co
   }
 }
 
-void cpu_transpose (float *input, const int N, const int d) {
-  for (unsigned int i = 0; i < N; ++i) {
-    for (unsigned int j = 0; j < i; ++j) {
-      float placeholder;
-      placeholder = input[j * d + i];
-      input[j * d + i] = input[i * d + j];
-      input[i * d + j] = placeholder;
+// Q is (N, d), K is (N, d)
+void cpu_matmul_withoutTranspose (float *A, float *B, float *output, const int row_A, const int row_B, const int common_dim) {
+  for (unsigned int row = 0; row < row_A; ++row) {
+    for (unsigned int col = 0; col < row_B; ++col) {
+
+      float sum = 0.0f;
+      for (unsigned int k = 0; k < common_dim; ++k) {
+        sum += A[row * d + k] * B[col * d + k];
+      }
+      output[row * d + col] = sum;
     }
   }
 }
 
-void cpu_attention (float *K, float *Q, float *V, float *S, float *P, float *O, const int N, const int d) {
-  cpu_transpose(K, N, d);
-  cpu_matmul(Q, K, S, N, d, d);
-  cpu_onlineSoftmax(S, P, N, N, nullptr);
-  cpu_matmul(P, V, O, N, d, N);
+void cpu_attention (float *K, float *Q, float *V, float *S, float *O, const int N, const int d) {
+  cpu_matmul_withoutTranspose(Q, K, S, N, N, d);
+  cpu_onlineSoftmax(S, S, N, N, nullptr);
+  cpu_matmul(S, V, O, N, d, N);
 }
 
 // -- VERIFY FUNCTIONS --
@@ -78,11 +81,10 @@ int main(void) {
   float *Q_cpu;
   float *V_cpu;
   float *S_cpu; // INTERMEDIATE MATRIX (unfortunately materialized in CPU)
-  float *P_cpu; // INTERMEDIATE MATRIX (unfortunately materialized in CPU)
   float *O_cpu;
   float cpu_time; // not used rn.
 
-  const int N = 32;
+  const int N = 64;
   const int d = 32;
 
 
@@ -94,8 +96,7 @@ int main(void) {
   K_cpu = (float*)std::malloc(N * d * sizeof(float));
   Q_cpu = (float*)std::malloc(N * d * sizeof(float));
   V_cpu = (float*)std::malloc(N * d * sizeof(float));
-  S_cpu = (float*)std::malloc(N * d * sizeof(float));
-  P_cpu = (float*)std::malloc(N * d * sizeof(float));
+  S_cpu = (float*)std::malloc(N * N * sizeof(float));
   O_cpu = (float*)std::malloc(N * d * sizeof(float));
   CUDA_CHECK(cudaStreamCreate(&stream));
 
@@ -118,7 +119,7 @@ int main(void) {
   FlashLab::copyMatrix(K, K_cpu, N, d);
   FlashLab::copyMatrix(Q, Q_cpu, N, d);
   FlashLab::copyMatrix(V, V_cpu, N, d);
-  cpu_attention(K_cpu, Q_cpu, V_cpu, S_cpu, P_cpu, O_cpu, N, d);
+  cpu_attention(K_cpu, Q_cpu, V_cpu, S_cpu, O_cpu, N, d);
   FlashLab::flashAttn::naive::launch_flashAttn_fwd_v1(K, Q, V, O, N, d, stream);
   CUDA_CHECK(cudaDeviceSynchronize());
   if (FlashLab::validate(O, O_cpu, N * d)) std::printf("Succes!\n");  // VERIFY KERNEL

@@ -13,17 +13,15 @@ namespace FlashLab::flashAttn::naive {
     __global__ void flashAttn_fwd_v1 (float *K, float *Q, float *V, float *O, const int N, const int d) {
         // We launch Br * 32 threads. SMEM loading is tiled
         // We launch CEIL_DIV(N, Br) many blocks
+        // For simplicity assume Br = Bc = 32. Then Ill check if it works for Br = 32, Bc = 64.
         int rowIdx = blockIdx.x * Br;
 
         // advance each block to q and o blocks
         Q += rowIdx * d;
         O += rowIdx * d;
 
-        int tx_i = threadIdx.x % 32;
-        int ty_i = threadIdx.x / 32;
-
-        int tx_j = (threadIdx.x) % (32 * Br / Bc);
-        int ty_j = (threadIdx.x) / (32 * Br / Bc);
+        int tx = threadIdx.x % 32;
+        int ty = threadIdx.x / 32;
 
         __shared__ float Q_i [Br * D];
         __shared__ float K_j [Bc * D];
@@ -40,42 +38,44 @@ namespace FlashLab::flashAttn::naive {
 
         for (unsigned int offset = 0; offset < d; offset += 32) {
             // assumption: d%32=0
-            Q_i[ty_i * D + (tx_i + offset)] = Q[ty_i * D + (tx_i + offset)];
+            Q_i[ty * D + (tx + offset)] = Q[ty * D + (tx + offset)];
         }
         __syncthreads();
 
         // start for loop for K_j V_j loading
         for (unsigned int outerLoop = 0; outerLoop < N; outerLoop += Bc) {
 
-            for (unsigned int offset = 0; offset < d; offset += (Br * 32) / Bc) {
-                // assumption: d%( (Br * 32) / Bc )=0
-                K_j[ty_j * D + (tx_j + offset)] = K[ty_j * D + (tx_j + offset)];
-                V_j[ty_j * D + (tx_j + offset)] = V[ty_j * D + (tx_j + offset)];
+            for (unsigned int offset = 0; offset < d; offset += 32) {
+                // assumption: d%32=0
+                K_j[ty * D + (tx + offset)] = K[ty * D + (tx + offset)];
+                V_j[ty * D + (tx + offset)] = V[ty * D + (tx + offset)];
             }
             __syncthreads();
 
             // calculate S=Q@K^T.
             for(unsigned int offset = 0; offset < Bc; offset += 32) {
-                // assumption: Bc%32 = 0, Bc >> 32
-                float sum = 0.0f;
-                for (unsigned int dotIdx = 0; dotIdx < d; ++dotIdx)
-                    sum += Q_i[ty_i * D + dotIdx] * K_j[(tx_i + offset) * D + dotIdx];  // possible bank conflict at K_j accesses
-                S_ij[ty_i * Bc + (tx_i + offset)] = sum;
+                // assumption: Bc, Br%32=0
+                float q_sum = 0.0f;
+                for (unsigned int k = 0; k < d; ++k)
+                    float q_value = Q_i[ty * D + k];
+                    float k_value = K_j[(tx + offset) * D + k];     // possible bank conflict at K_j accesses
+                    q_sum += q_value * k_value;
+                S_ij[ty * Bc + (tx + offset)] = q_sum;
             }
-            __syncthreads();
+            __syncthreads();    // make sure all threads finish S_ij load
 
             // thread-level softmax: reduce S_ij into register for online softmax
             float d_i = 0.0f;
             float m_i = -INFINITY;
             for (unsigned int offset = 0; offset < Bc; offset += 32) {
-                // assumption: Bc%32 = 0, Bc >> 32
-                int dataIdx = ty_i * Bc + (tx_i + offset);
+                // assumption: Bc, Br%32=0
+                int dataIdx = ty * Bc + (tx + offset);
                 float val = S_ij[dataIdx];
 
                 float m_prev = m_i;
-                m_i = fmaxf(m_i, val);
-                d_i *= expf(m_prev - m_i);
-                d_i += expf(val - m_i);
+                m_i = fmaxf(m_i, val);      // obtain new max
+                d_i *= expf(m_prev - m_i);  // scale old norm
+                d_i += expf(val - m_i);     // add running contribution
             }
 
             // warp-level softmax
@@ -91,34 +91,37 @@ namespace FlashLab::flashAttn::naive {
 
             // calculate P_ij
             for (unsigned int offset = 0; offset < Bc; offset += 32) {
-                // assumption: Bc%32 = 0, Bc >> 32
-                int dataIdx = ty_i * Bc + (tx_i + offset);
-                float val = S_ij[dataIdx];
-                S_ij[dataIdx] = expf(val - m_i);
+                // assumption: Bc, Br%32=0
+                int dataIdx = ty * Bc + (tx + offset);
+                float s_val = S_ij[dataIdx];
+                S_ij[dataIdx] = expf(s_val - m_i);
             }
-            __syncthreads();
+            __syncthreads();   // wait for load before PV matmul
 
             // now, m_i and d_i are block max and norms
 
-            // global max and norms: calculate new stats (current softmax + prev softmax results)
+            // calculate new global max and norms: (current stats + prev softmax result)
             float m_new = fmaxf(m_i, m_old);
             float d_new = d_old * expf(m_old - m_new) + d_i * expf(m_i - m_new);
             
             // matmul PV, load into O
+            // Br by 32 chunks of O_i are calculated
             #pragma unroll
             for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
-                // assumption: Bc%32=0, Bc >> 32
+                // assumption: Bc, Br%32=0
                 float pv_sum = 0.0f;
-                for (unsigned int dotIdx = 0; dotIdx < Bc; ++dotIdx) {
-                    float p_val = S_ij[ty_i * Bc + dotIdx];
-                    float v_val = V_j[dotIdx * D + (tx_i + (32 * i))];
+                float p_dataIdx = ty * Bc;          // same rowIdx, size: (Br, Bc)
+                float v_dataIdx = (tx * 32 * i);    // v is tiled by stride 32, size (Bc, d)
+                for (unsigned int k = 0; k < Bc; ++k) {
+                    float p_val = S_ij[p_dataIdx + k];
+                    float v_val = V_j[k * D + v_dataIdx];
                     pv_sum += p_val * v_val;
                 }
-                O_reg[i] *= d_old * (1/d_new) * expf(m_old - m_new);
-                O_reg[i] += (1/d_new) * pv_sum * expf(m_i - m_new);
+                O_reg[i] *= d_old * (1/d_new) * expf(m_old - m_new);    // rescale old block to new global stats
+                O_reg[i] += (1/d_new) * pv_sum * expf(m_i - m_new);     // add current block (scaled now)
             }
 
-            // save new globals as prev blocks
+            // save current globals as prev blocks
             m_old = m_new;
             d_old = d_new;
 
@@ -133,7 +136,8 @@ namespace FlashLab::flashAttn::naive {
         #pragma unroll
         for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
             // assumption: d%32=0, d >> 32
-            O[ty_i * D + (tx_i + 32 * i)] = O_reg[i];
+            float o_dataIdx = ty * D + (tx + 32 * i);
+            O[o_dataIdx] = O_reg[i];
         }
 
     }
