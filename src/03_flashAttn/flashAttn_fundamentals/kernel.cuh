@@ -9,8 +9,8 @@
 
 #define FULL_MASK 0xffffffffu // unsigned, safer in bit shifting
 
-namespace FlashLab::flashAttn::naive {
+namespace FlashLab::flashAttn::fundamentals {
 
-    void launch_flashAttn_fwd_v1(float *K, float *Q, float *V, float *O, const int N, const int d, cudaStream_t stream);
+    void launch_QK_matmul (float *K, float *Q, float *S, const int N, const int d, cudaStream_t stream);
 
 }

@@ -24,8 +24,8 @@ namespace FlashLab::flashAttn::fundamentals {
         S += rowIdx * D;                // advance S pointer rn. => SMEM -> GMEM loading would only require accounting for K_j block load offset
 
 
-        int tx = blockIdx.x % 32;   // ranges 0 to 31
-        int ty = blockIdx % 32;     // ranges 0 to Br-1
+        int tx = threadIdx.x % 32;      // ranges 0 to 31
+        int ty = threadIdx.x / 32;      // ranges 0 to Br-1
 
         __shared__ float Q_i[Br * D];
         __shared__ float K_j[Bc * D];
@@ -56,7 +56,7 @@ namespace FlashLab::flashAttn::fundamentals {
                     for (unsigned int i = 0; i < d; i += 32) {
                         int inner_dIdx = tx + i;
                         if (inner_dIdx < D) {
-                            int dataIdx = outer_dIdx * D + innerdIdx;
+                            int dataIdx = outer_dIdx * D + inner_dIdx;
                             K_j[dataIdx] = K[dataIdx];   
                         }
                     }
@@ -76,7 +76,7 @@ namespace FlashLab::flashAttn::fundamentals {
                         float k_val = K_j[(tx + i) * D + k];
                         qk_partial_sum += q_val * k_val;
                     }
-                    S_ij[ty * BC + (tx + i)] = qk_partial_sum;
+                    S_ij[ty * Bc + (tx + i)] = qk_partial_sum;
                 }
             }
             __syncthreads();
@@ -106,7 +106,7 @@ namespace FlashLab::flashAttn::fundamentals {
     //
     // KERNEL WRAPPERS
     //
-    void launch_QK_matmul (float *K, float *Q, float *S, const int N, const ind d, cudaStream_t stream) {
+    void launch_QK_matmul (float *K, float *Q, float *S, const int N, const int d, cudaStream_t stream) {
         const int Br = 32;
         const int Bc = 32;
         // make sure N is 128 or something

@@ -68,7 +68,7 @@ void cpu_attention (float *K, float *Q, float *V, float *S, float *O, const int 
 }
 
 // Q is (N,d), K is (N, d)
-void cpu_QK_matmul (float* K, float *Q, float *S, cosnt int Q_row, const int K_row, const int common_dim) {
+void cpu_QK_matmul (float* K, float *Q, float *S, const int Q_row, const int K_row, const int common_dim) {
   cpu_matmul_withoutTranspose(Q, K, S, Q_row, K_row, common_dim);
 }
 
