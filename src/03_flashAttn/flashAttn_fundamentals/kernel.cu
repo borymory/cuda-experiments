@@ -16,12 +16,19 @@ namespace FlashLab::flashAttn::fundamentals {
         // out is (N x N)
         // We launch CEIL_DIV(N, Br) many blocks
         // We have Br * 32 threads per block
-        // Simplicity, assume Bc >> Bc = 32.
-        // Code written for when Bc >> or = 32, Bc is a multiple of 32.
+        // Each block takes a row-tile of Q, all loads row-blocks of K iteratively and does matmul QK^T,
+        // similar to flashAttn.
+
+        // For simplicity assume:
+        // Bc >> Bc = 32
+        // Bc % 32 = 0
+        // N % Br = 0 (Less problems when assigning thread blocks to rows of S)
+        // N % Bc = 0 (Less problems when iterating through chunks of K)
+        // Bc % Br = 0 (Less problems when loading GMEM -> SMEM for K)
 
         int rowIdx = blockIdx.x * Br;   // General block offset (also for the O matrix)
         Q += rowIdx * D;                // advance pointer rn. => GMEM -> SMEM load indexology is easier to read
-        S += rowIdx * D;                // advance S pointer rn. => SMEM -> GMEM loading would only require accounting for K_j block load offset
+        S += rowIdx * N;                // advance S pointer rn. => SMEM -> GMEM loading would only require accounting for K_j block load offset
 
 
         int tx = threadIdx.x % 32;      // ranges 0 to 31
@@ -31,15 +38,11 @@ namespace FlashLab::flashAttn::fundamentals {
         __shared__ float K_j[Bc * D];
         __shared__ float S_ij [Br * Bc];
 
-        // load Q_i: make sure block offset doesn't cause out of bounds
-        if (rowIdx + ty < N) {
-            for (unsigned int i = 0; i < D; i += 32) {
-                // if for some reason D is not a multiple of 32
-                if (tx + i < D) {
-                    int dataIdx = ty * D + (tx + i);
-                    Q_i[dataIdx] = Q[dataIdx];
-                }
-            }
+        // load Q_i
+        for (unsigned int i = 0; i < D; i += 32) {
+            
+            int dataIdx = ty * D + (tx + i);
+            Q_i[dataIdx] = Q[dataIdx];
         }
         __syncthreads();
 
@@ -49,50 +52,35 @@ namespace FlashLab::flashAttn::fundamentals {
 
             // load K_j: a bit more complicated
             for (unsigned int k = 0; k < Bc; k += Br) {
+
                 int outer_dIdx = ty + k;
-                // First check: if Br many stacked warps overshoot range of Bc. 
-                // Second check: to prevent last block load overshooting N.
-                if (outer_dIdx < Bc && outer_dIdx + block_load_offset < N) {
-                    for (unsigned int i = 0; i < d; i += 32) {
-                        int inner_dIdx = tx + i;
-                        if (inner_dIdx < D) {
-                            int dataIdx = outer_dIdx * D + inner_dIdx;
-                            K_j[dataIdx] = K[dataIdx];   
-                        }
-                    }
+                for (unsigned int i = 0; i < D; i += 32) {
+                    int inner_dIdx = tx + i;
+                    int dataIdx = outer_dIdx * D + inner_dIdx;
+                    
+                    K_j[dataIdx] = K[dataIdx];   
                 }
             }
             __syncthreads();
 
             // matmul QK^T
             for (unsigned int i = 0; i < Bc; i += 32) {
-                // First check: prevent N overflow in Q rows
-                // Second check: prevent N overflow in K^T cols (K rows)
-                if (rowIdx + ty < N && block_load_offset + tx + i < N) {
 
-                    float qk_partial_sum = 0.0f;
-                    for (unsigned int k = 0; k < D; ++k) {
-                        float q_val = Q_i[ty * D + k];
-                        float k_val = K_j[(tx + i) * D + k];
-                        qk_partial_sum += q_val * k_val;
-                    }
-                    S_ij[ty * Bc + (tx + i)] = qk_partial_sum;
+                float qk_partial_sum = 0.0f;
+                for (unsigned int k = 0; k < D; ++k) {
+                    float q_val = Q_i[ty * D + k];
+                    float k_val = K_j[(tx + i) * D + k];
+                    qk_partial_sum += q_val * k_val;
                 }
+                S_ij[ty * Bc + (tx + i)] = qk_partial_sum;
             }
             __syncthreads();
 
             // load back to S
             for (unsigned int i = 0; i < Bc; i += 32) {
-
-                // First check: Rows don't overshoot N
-                // Second check: Columns don't overshoot N
-                // Third check: the offset 32 doesn't overshoot Bc
-                if (rowIdx + ty < N && block_load_offset + tx + i < N && tx + i < Bc) {
-                    int dIdx_GMEM = ty * N + (tx + i);
-                    int dIdx_SMEM = ty * Bc + (tx + i);
-
-                    S[dIdx_GMEM] = S_ij[dIdx_SMEM];
-                }
+                int dIdx_GMEM = ty * N + (tx + i);
+                int dIdx_SMEM = ty * Bc + (tx + i);
+                S[dIdx_GMEM] = S_ij[dIdx_SMEM];
             }
 
             // advance blocks
