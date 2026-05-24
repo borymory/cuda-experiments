@@ -20,7 +20,9 @@ Kernels implemented so far:
 - [x] Online Softmax
 - [ ] FlashAttention
 
-## Annoying launch commands
+## (Repetitive) Launch commands 
+
+Clone a branch or the main. E.g.:
 
 ```
 git clone -b research/online-softmax https://github.com/borymory/cuda-experiments.git
@@ -34,8 +36,10 @@ cd cuda-experiments
 chmod +x scripts/build.sh
 ```
 
+Run using build.sh and specify path for the kernel. E.g.:
+
 ```
-./scripts/build.sh src/03_flashAttn/01_flashAttn_naive
+./scripts/build.sh src/03_flashAttn/flashAttn_fundamentals
 ```
 
 ## Rules
@@ -98,3 +102,9 @@ Implemented matrix online softmax kernel. Experimented with mixed precision and 
 ### **LOG 9**
 
 Sketched out flash attention kernel. I worked around the math and I am still stuck between the hardest design choice: registers or shared memory when storing the intermediate chunk S_ij. I initially though registers though I didn't want to directly go through the elements per thread calculation again and again without a naive flashattn implementation so I decided to settle with shared memory and use appropriate chunk sizes Bc and Br. I think the most hard part is not being able to test the intermediate code. Maybe there is a way that I am not aware of yet but it seems and feels like I am writing kernels in the dark for an hour or something before I am able to test it. The worse part is to run the kernel, see it giving inaccurate answers, turning back to code and sadly seeing that you have to proof check the math, not debug it like seperating part of the codes and running them. The data size is big, the assumptions are getting complexer. I think solidifying each part of the basics is a really good way to really minimize simple but hard to notice mistakes ruining the kernel, like uncoalesced mem accesses/out-of-bound reaches/wrong matmul indexology (I think I currently suffer from that while implementing flashAttn rn). Anyhow, we will see how it sticks in time. :)
+
+### **LOG 10**
+
+Been working on flashAttn for some time now. I've decided to take a step back and divide the flash attention to three parts: QK matmul, S softmax, PV matmul. Right now I am working on the QK matmul and hoping that it will run properly on two or more blocks. Right now it works for a single block (meaning matmul works, but indexology for the following blocks are a bit shaky) and I maintain a huge list of assumptions that are made in writing the kernel. (I always wonder how researchers that design these kernels approach this problem.) I've also checked out Karpathy's llm.c. It's pretty cool, if you haven't came across it by now please go check it out! The kernels inside are not magnificent but for a beginner it is incredibly valuable as what you see later are basically built from those 'simple' implementations. I may later on work on some simple but efficient CUDA kernels inside the dev folder of it, if it also happens that I buy a GPU.
+
+I mentioned a concern above. I wonder how other people tackle designing new kernels? Do you guys draw it or approach by index first? I hope you guys don't start by doing the math and index one by one without visualizing... I've never seen that happen though it would've scared me to see someone that coherent and efficient with indexology.
