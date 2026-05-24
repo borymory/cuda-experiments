@@ -55,12 +55,13 @@ namespace FlashLab::flashAttn::naive {
             // calculate S=Q@K^T.
             for(unsigned int offset = 0; offset < Bc; offset += 32) {
                 // assumption: Bc, Br%32=0
-                float q_sum = 0.0f;
-                for (unsigned int k = 0; k < d; ++k)
+                float qk_sum = 0.0f;
+                for (unsigned int k = 0; k < d; ++k) {
                     float q_value = Q_i[ty * D + k];
                     float k_value = K_j[(tx + offset) * D + k];     // possible bank conflict at K_j accesses
-                    q_sum += q_value * k_value;
-                S_ij[ty * Bc + (tx + offset)] = q_sum;
+                    qk_sum += q_value * k_value;
+                }
+                S_ij[ty * Bc + (tx + offset)] = qk_sum;
             }
             __syncthreads();    // make sure all threads finish S_ij load
 
@@ -99,7 +100,7 @@ namespace FlashLab::flashAttn::naive {
             __syncthreads();   // wait for load before PV matmul
 
             // now, m_i and d_i are block max and norms
-
+            
             // calculate new global max and norms: (current stats + prev softmax result)
             float m_new = fmaxf(m_i, m_old);
             float d_new = d_old * expf(m_old - m_new) + d_i * expf(m_i - m_new);
@@ -110,8 +111,8 @@ namespace FlashLab::flashAttn::naive {
             for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
                 // assumption: Bc, Br%32=0
                 float pv_sum = 0.0f;
-                float p_dataIdx = ty * Bc;          // same rowIdx, size: (Br, Bc)
-                float v_dataIdx = (tx * 32 * i);    // v is tiled by stride 32, size (Bc, d)
+                int p_dataIdx = ty * Bc;          // same rowIdx, size: (Br, Bc)
+                int v_dataIdx = (tx * 32 * i);    // v is tiled by stride 32, size (Bc, d)
                 for (unsigned int k = 0; k < Bc; ++k) {
                     float p_val = S_ij[p_dataIdx + k];
                     float v_val = V_j[k * D + v_dataIdx];
@@ -136,7 +137,7 @@ namespace FlashLab::flashAttn::naive {
         #pragma unroll
         for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
             // assumption: d%32=0, d >> 32
-            float o_dataIdx = ty * D + (tx + 32 * i);
+            int o_dataIdx = ty * D + (tx + 32 * i);
             O[o_dataIdx] = O_reg[i];
         }
 
@@ -153,9 +154,14 @@ namespace FlashLab::flashAttn::naive {
         dim3 blockDim(32 * Br);
         
         switch(d) {
-            case(64):
-                flashAttn_fwd_v1<Br, Bc, 64><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
+            case(32):
+                flashAttn_fwd_v1<Br, Bc, 32><<<gridDim, blockDim, 0, stream>>>(K, Q, V, O, N, d); break;
         }
+
+        // Check for launch errors (like passing a CPU pointer!)
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess)
+            printf("Kernel Launch Error: %s\n", cudaGetErrorString(err));
     }
 
 }

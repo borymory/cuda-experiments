@@ -67,6 +67,11 @@ void cpu_attention (float *K, float *Q, float *V, float *S, float *O, const int 
   cpu_matmul(S, V, O, N, d, N);
 }
 
+// Q is (N,d), K is (N, d)
+void cpu_QK_matmul (float* K, float *Q, float *S, cosnt int Q_row, const int K_row, const int common_dim) {
+  cpu_matmul_withoutTranspose(Q, K, S, Q_row, K_row, common_dim);
+}
+
 // -- VERIFY FUNCTIONS --
 // softmax can be verified element wise. Use validate func given in ./common/utils.cu
 
@@ -75,14 +80,11 @@ int main(void) {
   
   float *K;
   float *Q;
-  float *V;
-  float *O;
+  float *S;
+
   float *K_cpu;
   float *Q_cpu;
-  float *V_cpu;
-  float *S_cpu; // INTERMEDIATE MATRIX (unfortunately materialized in CPU)
-  float *O_cpu;
-  //float cpu_time; // not used rn.
+  float *S_cpu;
 
   const int N = 32;
   const int d = 32;
@@ -91,13 +93,10 @@ int main(void) {
   // USE UNIFIED MEMORY - INITIALIATONS
   CUDA_CHECK(cudaMallocManaged(&K, N * d * sizeof(float)));
   CUDA_CHECK(cudaMallocManaged(&Q, N * d * sizeof(float)));
-  CUDA_CHECK(cudaMallocManaged(&V, N * d * sizeof(float)));
-  CUDA_CHECK(cudaMallocManaged(&O, N * d * sizeof(float)));
+  CUDA_CHECK(cudaMallocManaged(&S, N * N * sizeof(float)));
   K_cpu = (float*)std::malloc(N * d * sizeof(float));
   Q_cpu = (float*)std::malloc(N * d * sizeof(float));
-  V_cpu = (float*)std::malloc(N * d * sizeof(float));
   S_cpu = (float*)std::malloc(N * N * sizeof(float));
-  O_cpu = (float*)std::malloc(N * d * sizeof(float));
   CUDA_CHECK(cudaStreamCreate(&stream));
 
   // -- BENCHMARK STATISTICS --
@@ -115,25 +114,22 @@ int main(void) {
   // -- VERIFY KERNEL RUN --
   FlashLab::initMatrix(K, N, d);
   FlashLab::initMatrix(Q, N, d);
-  FlashLab::initMatrix(V, N, d);
+
   FlashLab::copyMatrix(K, K_cpu, N, d);
   FlashLab::copyMatrix(Q, Q_cpu, N, d);
-  FlashLab::copyMatrix(V, V_cpu, N, d);
-  cpu_attention(K_cpu, Q_cpu, V_cpu, S_cpu, O_cpu, N, d);
-  FlashLab::flashAttn::naive::launch_flashAttn_fwd_v1(K, Q, V, O, N, d, stream);
+
+  cpu_QK_matmul(K_cpu, Q_cpu, S_cpu, N, N, d);
+  FlashLab::flashAttn::fundamentals::launch_QK_matmul(K, Q, S, N, d, stream);
   CUDA_CHECK(cudaDeviceSynchronize());
-  if (FlashLab::validate(O, O_cpu, N * d)) std::printf("Succes!\n");  // VERIFY KERNEL
+  if (FlashLab::validate(S, S_cpu, N * N)) std::printf("Succes!\n");  // VERIFY KERNEL
 
   // FREE MEMORY ALLOCATION
   CUDA_CHECK(cudaFree(K));
   CUDA_CHECK(cudaFree(Q));
-  CUDA_CHECK(cudaFree(V));
-  CUDA_CHECK(cudaFree(O));
+  CUDA_CHECK(cudaFree(S));
   std::free(K_cpu);
   std::free(Q_cpu);
-  std::free(V_cpu);
   std::free(S_cpu);
-  std::free(O_cpu);
 
   // DESTROY STREAM
   CUDA_CHECK(cudaStreamDestroy(stream));
