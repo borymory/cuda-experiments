@@ -1,16 +1,16 @@
-# CUDA SOTA IMPLEMENTATION PRACTICE
+# **CUDA SOTA IMPLEMENTATION PRACTICE**
 
 A "no-tutorial" journey into implementing State-of-the-Art AI kernels in CUDA.
 
-## The Mission
+## **The Mission**
 
 To learn by doing. Starting from basic kernels and slowly ramping it up, towards SOTA papers. The current target is **FlashAttention**, implemented from scratch.
 
-# 🛡️ CURRENT GOAL:
+# 🛡️ **CURRENT GOAL**
 
 **FlashAttn** implementation, starting from softmax. Follow along from ./src/ and ./research/ to see explanations and math behind each of the kernels I write.
 
-## 🚀 Implementation Roadmap
+## 🚀 **Implementation Roadmap**
 
 ### **Prerequisite Kernels**
 - [x] Reduction Algorithm: from PMPP
@@ -24,7 +24,7 @@ To learn by doing. Starting from basic kernels and slowly ramping it up, towards
 - [ ] **FlashAttn Part 3**: PV_Matmul
 - [ ] **Final Part**: Fusing: Flash Attention!
 
-## (Repetitive) Launch commands 
+## **(Repetitive) Launch commands**
 
 **Clone a branch or the main. E.g.:**
 
@@ -52,18 +52,52 @@ chmod +x scripts/build.sh
 ./bin/test_run
 ```
 
-## Rules 
+## **Rules** 
 
 - [x] 🔥 Full `CUDA_CHECK` error handling on every API call.
 - [x] 🔥 Proper C++ Namespacing and Header/Source separation.
 - [x] 🔥 `build.sh` scripting for reproducible experiments.
 - [x] 🔥 Benchmarking GB/s and % of Peak Bandwidth.
 
-## Benchmarking 📚
+## **Benchmarking** 📚
 
 I have included a cold and hot start benchmarking function in common/include/benchmark.cuh. For a cold start, L2 cache is flushed before every kernel launch and for a hot start, the kernel is launched, without L2 flush, iteratively and averaged over time to yield statistics. I don't think I will but maybe later on I can sample these kernel launches and do statistics on them... That may be for some time later. More on this lateron.
 
-## Worklog - Temporary 🔏
+## **Directory**
+
+```
+cuda-experiments/
+├── README.md                # You are HERE
+├── images/                  # basic diagrams
+│
+├── common/                  # Utilities used by all kernels
+│   ├── include/
+│   │   ├── utils.cuh        # Header for utils.cu
+│   │   └── benchmark.cuh    # Templated timing & GB/s
+│   └── src/
+│       └── utils.cu         # Tools: Init matrix, validate etc...
+│
+├── research/                # Notes, generally indexology and explanations
+│
+├── src/                     # Implementation folders
+│   ├── 01_reductions/       # Reduction algorithm
+│   ├── 02_softmax/          # Milestone 2: Numerical Stability
+│   └── 03_flashAttn/        # Milestone 3: The Main Goal
+│       └── fundamentals/    # QK_matmul
+│           ├── kernel.cu    # QK_matmul kernel + launch wrapper
+│           ├── kernel.cuh   # Declarations
+│           └── main.cu      # Verification vs CPU reference
+│
+├── templates/               # The "Blueprint" for starting new kernels (unused)
+│
+├── scripts/                 # Build automation"
+│   └── build.sh
+│
+└── bin/                     # Compiled binaries
+    └── test_run             # The current executable (by build.sh)
+```
+
+## **Worklog - Temporary** 🔏
 
 ### **LOG 0**
 
