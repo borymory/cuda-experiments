@@ -6,23 +6,27 @@ A "no-tutorial" journey into implementing State-of-the-Art AI kernels in CUDA.
 
 To learn by doing. Starting from basic kernels and slowly ramping it up, towards SOTA papers. The current target is **FlashAttention**, implemented from scratch.
 
-# CURRENT GOAL:
+# 🛡️ CURRENT GOAL:
 
 **FlashAttn** implementation, starting from softmax. Follow along from ./src/ and ./research/ to see explanations and math behind each of the kernels I write.
 
-## Implementation Roadmap
+## 🚀 Implementation Roadmap
 
-Kernels implemented so far:
+### **Prerequisite Kernels**
 - [x] Reduction Algorithm: from PMPP
 - [x] Reduction Algorithm: Warp Shuffling (xor and down)
 - [x] rowSum using __shfl_xor_sync()
 - [x] rowMax using __shfl_xor_sync()
 - [x] Online Softmax
-- [ ] FlashAttention
+### **Road to FlashAttn**
+- [x] **FlashAttn Part 1**: QK_Matmul
+- [ ] **FlashAttn Part 2**: S_Softmax
+- [ ] **FlashAttn Part 3**: PV_Matmul
+- [ ] **Final Part**: Fusing: Flash Attention!
 
 ## (Repetitive) Launch commands 
 
-Clone a branch or the main. E.g.:
+**Clone a branch or the main. E.g.:**
 
 ```
 git clone -b research/online-softmax https://github.com/borymory/cuda-experiments.git
@@ -36,24 +40,30 @@ cd cuda-experiments
 chmod +x scripts/build.sh
 ```
 
-Run using build.sh and specify path for the kernel. E.g.:
+**Run using build.sh and specify path for the kernel. E.g.:**
 
 ```
 ./scripts/build.sh src/03_flashAttn/flashAttn_fundamentals
 ```
 
-## Rules
+**Run kernel using**
 
-- [x] Full `CUDA_CHECK` error handling on every API call.
-- [x] Proper C++ Namespacing and Header/Source separation.
-- [x] `build.sh` scripting for reproducible experiments.
-- [x] Benchmarking GB/s and % of Peak Bandwidth.
+```
+./bin/test_run
+```
 
-## Benchmarking
+## Rules 
+
+- [x] 🔥 Full `CUDA_CHECK` error handling on every API call.
+- [x] 🔥 Proper C++ Namespacing and Header/Source separation.
+- [x] 🔥 `build.sh` scripting for reproducible experiments.
+- [x] 🔥 Benchmarking GB/s and % of Peak Bandwidth.
+
+## Benchmarking 📚
 
 I have included a cold and hot start benchmarking function in common/include/benchmark.cuh. For a cold start, L2 cache is flushed before every kernel launch and for a hot start, the kernel is launched, without L2 flush, iteratively and averaged over time to yield statistics. I don't think I will but maybe later on I can sample these kernel launches and do statistics on them... That may be for some time later. More on this lateron.
 
-## Worklog - Temporary
+## Worklog - Temporary 🔏
 
 ### **LOG 0**
 
@@ -108,3 +118,15 @@ Sketched out flash attention kernel. I worked around the math and I am still stu
 Been working on flashAttn for some time now. I've decided to take a step back and divide the flash attention to three parts: QK matmul, S softmax, PV matmul. Right now I am working on the QK matmul and hoping that it will run properly on two or more blocks. Right now it works for a single block (meaning matmul works, but indexology for the following blocks are a bit shaky) and I maintain a huge list of assumptions that are made in writing the kernel. (I always wonder how researchers that design these kernels approach this problem.) I've also checked out Karpathy's llm.c. It's pretty cool, if you haven't came across it by now please go check it out! The kernels inside are not magnificent but for a beginner it is incredibly valuable as what you see later are basically built from those 'simple' implementations. I may later on work on some simple but efficient CUDA kernels inside the dev folder of it, if it also happens that I buy a GPU.
 
 I mentioned a concern above. I wonder how other people tackle designing new kernels? Do you guys draw it or approach by index first? I hope you guys don't start by doing the math and index one by one without visualizing... I've never seen that happen though it would've scared me to see someone that coherent and efficient with indexology.
+
+Multiple blocks didn't work because there was an indexology problem (always an indexology problem) at the CPU code. I always assumed that I have written my CPU code correctly which really stung me today. I haven't been logging here for some time now so this can be considered as a mega update here :)
+
+Also added emojis to make this place a bit pretty. Because it deserves to be so.
+
+## **Stretch Want-To-Do's**
+
+* **Start exploring llm.c. Replicate it with 'minimal' cheating, run it.**
+* **Try to implement other papers in CUDA**
+* **Continue with FlashAttn papers**
+* **Adopt an open project**
+* **Experiment with tensor cores**

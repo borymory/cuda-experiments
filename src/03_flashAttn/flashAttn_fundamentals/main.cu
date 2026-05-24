@@ -56,7 +56,8 @@ void cpu_matmul_withoutTranspose (float *A, float *B, float *output, const int r
       for (unsigned int k = 0; k < common_dim; ++k) {
         sum += A[row * common_dim + k] * B[col * common_dim + k];
       }
-      output[row * common_dim + col] = sum;
+      output[row * row_B + col] = sum;  // fun fact: I have written accidentally common_dim isntead of row_B
+                                        // which led me to rewrite the very same kernel again and again...
     }
   }
 }

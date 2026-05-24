@@ -44,12 +44,12 @@ namespace FlashLab::flashAttn::fundamentals {
             int dataIdx = ty * D + (tx + i);
             Q_i[dataIdx] = Q[dataIdx];
         }
+        __syncthreads();
         
 
         // add block load offset loop here
         for (unsigned int block_load_offset = 0; block_load_offset < N; block_load_offset += Bc) {
             
-            __syncthreads();
             // load K_j: a bit more complicated
             for (unsigned int k = 0; k < Bc; k += Br) {
 
