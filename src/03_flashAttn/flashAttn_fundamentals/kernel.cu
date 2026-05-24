@@ -36,7 +36,7 @@ namespace FlashLab::flashAttn::fundamentals {
 
         __shared__ float Q_i[Br * D];
         __shared__ float K_j[Bc * D];
-        __shared__ float S_ij [Br * Bc];
+        __shared__ float S_ij[Br * Bc];
 
         // load Q_i
         for (unsigned int i = 0; i < D; i += 32) {
@@ -44,12 +44,12 @@ namespace FlashLab::flashAttn::fundamentals {
             int dataIdx = ty * D + (tx + i);
             Q_i[dataIdx] = Q[dataIdx];
         }
-        __syncthreads();
+        
 
         // add block load offset loop here
         for (unsigned int block_load_offset = 0; block_load_offset < N; block_load_offset += Bc) {
             
-
+            __syncthreads();
             // load K_j: a bit more complicated
             for (unsigned int k = 0; k < Bc; k += Br) {
 
