@@ -29,7 +29,7 @@ To learn by doing. Starting from basic kernels and slowly ramping it up, towards
 **Clone a branch or the main. E.g.:**
 
 ```
-git clone -b research/online-softmax https://github.com/borymory/cuda-experiments.git
+git clone https://github.com/borymory/cuda-experiments.git
 ```
 
 ```
