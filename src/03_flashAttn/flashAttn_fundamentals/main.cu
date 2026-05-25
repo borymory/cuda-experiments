@@ -73,7 +73,7 @@ void cpu_QK_matmul (float* K, float *Q, float *S, const int Q_row, const int K_r
   cpu_matmul_withoutTranspose(Q, K, S, Q_row, K_row, common_dim);
 }
 
-void cpu_S_softmax (float* K, float *Q, float *S, const int Q_row, const int K_row, const int common_dim, const int BC) {
+void cpu_S_softmax (float* K, float *Q, float *S, const int Q_row, const int K_row, const int common_dim, const int Bc) {
   cpu_matmul_withoutTranspose(Q, K, S, Q_row, K_row, common_dim);
   
   // S is of size (Q_row, K_row)
@@ -85,7 +85,7 @@ void cpu_S_softmax (float* K, float *Q, float *S, const int Q_row, const int K_r
       float m_prev = -INFINITY;
       // do softmax on Bc element
       for (unsigned int k = 0; k < Bc; ++k) {
-        val = S[row * K_row + (col + k)];
+        float val = S[row * K_row + (col + k)];
         m_new = fmaxf(m_prev, val);   // calculate new max
         norm *= expf(m_new - m_prev); // rescale old sum
         norm += expf(val - m_new);    // add current contribution
@@ -93,7 +93,7 @@ void cpu_S_softmax (float* K, float *Q, float *S, const int Q_row, const int K_r
       }
       // store Bc results into S, simulating the flashAttn behaviour
       for (unsigned int k = 0; k < Bc; ++k) {
-        val = S[row * K_row + (col + k)];
+        float val = S[row * K_row + (col + k)];
         S[row * K_row + (col + k)] = expf(val - m_new) / norm;
       }
       
@@ -148,7 +148,7 @@ int main(void) {
   FlashLab::copyMatrix(K, K_cpu, N, d);
   FlashLab::copyMatrix(Q, Q_cpu, N, d);
 
-  cpu_QK_matmul(K_cpu, Q_cpu, S_cpu, N, N, d, Bc);
+  cpu_S_softmax(K_cpu, Q_cpu, S_cpu, N, N, d, Bc);
   FlashLab::flashAttn::fundamentals::launch_S_softmax(K, Q, S, N, d, stream);
   CUDA_CHECK(cudaDeviceSynchronize());
   if (FlashLab::validate(S, S_cpu, N * N)) std::printf("Succes!\n");  // VERIFY KERNEL
