@@ -122,7 +122,6 @@ namespace FlashLab::flashAttn::fundamentals {
             Q_i[dataIdx] = Q[dataIdx];
         }
         __syncthreads();
-        
 
         // add block load offset loop here
         for (unsigned int block_load_offset = 0; block_load_offset < N; block_load_offset += Bc) {
@@ -151,6 +150,9 @@ namespace FlashLab::flashAttn::fundamentals {
                     float k_val = K_j[(tx + i) * D + k];
                     S_val += q_val * k_val;
                 }
+                // load result back to SMEM
+                int dIdx_SMEM = ty * Bc + (tx + i);
+                S_ij[dIdx_SMEM] = S_val;
 
                 float m_prev = m_i;
                 m_i = fmaxf(m_i, S_val);        // obtain new max
@@ -190,6 +192,12 @@ namespace FlashLab::flashAttn::fundamentals {
             // store global stats as old stats
             m_old = m_new;
             d_old = d_new;
+
+            __syncthreads();    // While a warp is busy with matmul, another warp can modify the very same SMEM.
+            // Napkin proof: Take thread tx = 3, ty = 0. It loads the 3rd row of K_j. Take ty = 3, tx doesn't matter. 
+            // If warp threads ty = 3 is faster than warp threads ty = 0, 
+            // it will go and load the next K_j chunk 
+            // while thread tx = 3, ty = 0 still needs the old chunk.
         }
 
     }
