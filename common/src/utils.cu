@@ -46,6 +46,10 @@ namespace FlashLab {
           std::printf("CPU: %f\n", cpu_res[i]);
           return false;
         }
+        if (i == 0) {
+          std::printf("GPU: %f\n", gpu_res[i]);
+          std::printf("CPU: %f\n", cpu_res[i]);
+        }
     }
     return true;
   }

@@ -173,13 +173,15 @@ namespace FlashLab::flashAttn::fundamentals {
             for (unsigned int i = 0; i < Bc; i += 32) {
                 int dIdx_GMEM = ty * N + (tx + i);
                 int dIdx_SMEM = ty * Bc + (tx + i);
-                float val = expf(S_ij[dIdx_SMEM] - m_i);
+                float val = expf(S_ij[dIdx_SMEM] - m_i) / d_i;
                 S[dIdx_GMEM] = val;
             }
 
             // calculate new global statistics (prev S chunk + running S chunk)
             float m_new = fmaxf(m_i, m_old);
             float d_new = d_old * expf(m_old - m_new) + d_i * expf(m_i - m_new);
+
+            // PV matmul (next)
 
             // advance blocks
             K += Bc * D;        // K is not transposed so block offset is along rows.
@@ -189,8 +191,6 @@ namespace FlashLab::flashAttn::fundamentals {
             m_old = m_new;
             d_old = d_new;
         }
-
-        // load back to S for CPU verification
 
     }
     

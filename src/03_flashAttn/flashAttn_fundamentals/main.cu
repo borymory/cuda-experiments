@@ -87,7 +87,7 @@ void cpu_S_softmax (float* K, float *Q, float *S, const int Q_row, const int K_r
       for (unsigned int k = 0; k < Bc; ++k) {
         float val = S[row * K_row + (col + k)];
         m_new = fmaxf(m_prev, val);   // calculate new max
-        norm *= expf(m_new - m_prev); // rescale old sum
+        norm *= expf(m_prev - m_new); // rescale old sum
         norm += expf(val - m_new);    // add current contribution
         m_prev = m_new;
       }
@@ -102,7 +102,7 @@ void cpu_S_softmax (float* K, float *Q, float *S, const int Q_row, const int K_r
 }
 
 // -- VERIFY FUNCTIONS --
-// softmax can be verified element wise. Use validate func given in ./common/utils.cu
+// These kernels can be verified element wise. Use validate func given in ./common/utils.cu
 
 int main(void) {
   cudaStream_t stream;
