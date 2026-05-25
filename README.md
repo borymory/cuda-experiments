@@ -159,7 +159,7 @@ Also added emojis to make this place a bit pretty. Because it deserves to be so.
 
 ### **LOG 11**
 
-Kicked things of with finalizing QK_matmul. It passed all the tests I planned on doing for now. I listed them quickly in ./research. Feel free to check it out real quick as the next fundamental kernels for Flash Attention are built on top of it. Currently I am working and, as of writing, finished S_softmax. It is built onto QK_matmul assuming that it works (and it does). I tested my first attempt and was really happy to see that all my tests were a success but then I saw the sad reality that my CPU was calculating -nan. I am surprised how -nan isn't notified by C++ when I try to calculate relative error. 
+Kicked things of with finalizing QK_matmul. It passed all the tests I planned on doing for now. I listed them quickly in ./research. Feel free to check it out real quick as the next fundamental kernels for Flash Attention are built on top of it. Currently I am working and, as of writing, finished S_softmax. It is built onto QK_matmul assuming that it works (and it does). I tested my it and was really happy to see that all my tests were a success in my first attempt. Then I noticed that my CPU was calculating -nan. I am surprised how -nan isn't notified by C++ when I try to calculate relative error. After fixing the CPU code, but also the ghost read error in my kernel and fixing "the possible but never occured" race condition, I have finished S_softmax. It ran properly, passing all the tests mentioned in ./research/S_softmax.md .
 
 ## **Stretch Want-To-Do's**
 

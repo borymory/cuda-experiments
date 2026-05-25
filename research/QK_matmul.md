@@ -1,4 +1,4 @@
-# **QK_Matmul**
+# **QK_matmul**
 
 This is the QK^T matrix multiplication part of FlashAttention written in CUDA.
 
