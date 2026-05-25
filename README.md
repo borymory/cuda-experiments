@@ -20,7 +20,7 @@ To learn by doing. Starting from basic kernels and slowly ramping it up, towards
 - [x] Online Softmax
 ### **Road to FlashAttn**
 - [x] **FlashAttn Part 1**: QK_Matmul
-- [ ] **FlashAttn Part 2**: S_Softmax
+- [x] **FlashAttn Part 2**: S_Softmax
 - [ ] **FlashAttn Part 3**: PV_Matmul
 - [ ] **Final Part**: Fusing: Flash Attention!
 
