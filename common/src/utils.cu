@@ -39,16 +39,20 @@ namespace FlashLab {
 
         float diff = std::abs(gpu_res[i] - cpu_res[i]);
         float relative_err = diff / std::abs(cpu_res[i]);
+
+        if (std::isnan(gpu_res[i]) || std::isnan(cpu_res[i]) ||
+            std::isinf(gpu_res[i]) || std::isinf(cpu_res[i])) {
+            std::printf("Validation Failure: Inf or NaN detected at index %d\n", i);
+            std::printf("GPU: %f\n", gpu_res[i]);
+            std::printf("CPU: %f\n", cpu_res[i]);
+            return false;
+        }
         
         if (relative_err > 1e-5) {
           std::printf("First error at index %d\n", i);
           std::printf("GPU: %f\n", gpu_res[i]);
           std::printf("CPU: %f\n", cpu_res[i]);
           return false;
-        }
-        if (i == 0) {
-          std::printf("GPU: %f\n", gpu_res[i]);
-          std::printf("CPU: %f\n", cpu_res[i]);
         }
     }
     return true;
