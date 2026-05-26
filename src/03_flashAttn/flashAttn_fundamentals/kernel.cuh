@@ -15,4 +15,6 @@ namespace FlashLab::flashAttn::fundamentals {
 
     void launch_S_softmax (float *K, float *Q, float *S, const int N, const int d, cudaStream_t stream);
 
+    void launch_PV_matmul (float *K, float *Q, float *V, float *O, const int N, const int d, cudaStream_t stream);
+
 }
