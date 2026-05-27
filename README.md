@@ -21,8 +21,8 @@ To learn by doing. Starting from basic kernels and slowly ramping it up, towards
 ### **Road to FlashAttn**
 - [x] **FlashAttn Part 1**: QK_Matmul
 - [x] **FlashAttn Part 2**: S_Softmax
-- [ ] **FlashAttn Part 3**: PV_Matmul
-- [ ] **Final Part**: Fusing: Flash Attention!
+- [x] **FlashAttn Part 3**: PV_Matmul
+- [x] **Final Part**: Fusing: Naive Flash Attention!
 
 ## **(Repetitive) Launch commands**
 
@@ -159,7 +159,11 @@ Also added emojis to make this place a bit pretty. Because it deserves to be so.
 
 ### **LOG 11**
 
-Kicked things of with finalizing QK_matmul. It passed all the tests I planned on doing for now. I listed them quickly in ./research. Feel free to check it out real quick as the next fundamental kernels for Flash Attention are built on top of it. Currently I am working and, as of writing, finished S_softmax. It is built onto QK_matmul assuming that it works (and it does). I tested my it and was really happy to see that all my tests were a success in my first attempt. Then I noticed that my CPU was calculating -nan. I am surprised how -nan isn't notified by C++ when I try to calculate relative error. After fixing the CPU code, but also the ghost read error in my kernel and fixing "the possible but never occured" race condition, I have finished S_softmax. It ran properly, passing all the tests mentioned in ./research/S_softmax.md .
+Kicked things of with finalizing QK_matmul. It passed all the tests I planned on doing for now. I listed them quickly in ./research. Feel free to check it out real quick as the next fundamental kernels for Flash Attention are built on top of it. Currently I am working and, as of writing, finished S_softmax. It is built onto QK_matmul assuming that it works (and it does). I tested my it and was really happy to see that all my tests were a success in my first attempt. Then I noticed that my CPU was calculating -nan. I am surprised how -nan isn't notified by C++ when I try to calculate relative error. After fixing the CPU code, but also the ghost read error in my kernel and fixing "the possible but never occured" race condition, I have finished S_softmax. It ran properly, passing all the tests mentioned in ./research/S_softmax.md.
+
+### **LOG 12**
+
+I wasn't expecting the PV matmul implementation to be equivalent to the naive flash attention kernel. For some reason I thought I'd need to fuse the 3 individual parts as one but I noticed that instead of wriitng 3 seperate kernels and trying to fuse them as a bigger one, writing on top of each other day by day is much more clearer and keeps the thread organization really concise. I've included more details and thought about this in ./research/flash_attention.md. 
 
 ## **Stretch Want-To-Do's**
 
