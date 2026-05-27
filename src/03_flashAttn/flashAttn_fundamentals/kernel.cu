@@ -306,7 +306,7 @@ namespace FlashLab::flashAttn::fundamentals {
 
             // PV matmul
             #pragma unroll
-            for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; i += 32) {
+            for (unsigned int i = 0; i < ELEMENTS_PER_THREAD; ++i) {
                 
                 float pv_val = 0.0f;
                 for (unsigned int k = 0; k < Bc; ++k) {
